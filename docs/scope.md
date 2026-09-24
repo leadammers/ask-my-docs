@@ -33,15 +33,17 @@ Plus: a **pre-seeded demo notebook** so a reviewer can try it in 10 seconds with
 
 ## 3. Extras (ordered by priority — build top-down, stop when time runs out)
 
+The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main engineering achievement here, so evaluation and hardening (section 4) are treated as guaranteed parts of the MVP, not extras squeezed in afterwards. The extras below are then ordered by cost and risk rather than by how close they get to NotebookLM's own feature set.
+
 | Priority | Feature | Why this position | Est. |
 |---|---|---|---|
-| P1 | **Notebook guide** — auto summary, key topics, suggested questions | Cheapest feature with the strongest "this is NotebookLM" signal; reuses the pipeline | 1h |
-| P2 | **More source types** — pasted text, Markdown/TXT upload, web URL | Makes the live demo flexible; each type is a small, isolated ingestion adapter | 1.5h |
-| P3 | **Audio overview** — two-host podcast-style summary via multi-speaker TTS | NotebookLM's signature feature and the most memorable demo moment. Riskiest (preview TTS model, long generation) → strictly timeboxed at 3h, with a transcript-only fallback | 3h |
-| P4 | **Saved notes** — pin an answer (with its citations) as a note, write own notes | Makes it feel like a notebook, but least impressive per hour | 1h |
+| P1 | **Notebook guide** — auto summary, key topics, suggested questions | Cheap, reuses the existing pipeline, visible payoff | 1h |
+| P2 | **More source types** — pasted text, Markdown/TXT upload, web URL | Small, isolated ingestion adapters; makes the live demo more flexible | 1.5h |
+| P3 | **Saved notes** — pin an answer (with its citations) as a note, write own notes | Small and low risk, rounds out the "notebook" feel | 1h |
+| Stretch | **Audio overview** — two-host podcast-style summary via multi-speaker TTS | The most memorable demo moment, but the highest-risk build (preview TTS model, long generation). Only attempted once P0, evaluation and hardening are solid, strictly timeboxed at 3h, with a transcript-only fallback | 3h |
 | Stretch | YouTube transcripts as a source | Only if everything above is done | — |
 
-**Cut line:** if behind schedule by day 4, drop P4 first, then the URL source type from P2. P0 + P1 + a working P3 is a strong submission. P0 alone, polished and evaluated, is still a valid submission; P0 half-working with four half-built extras is not.
+**Cut line:** evaluation (T13) and hardening (T14) are part of the MVP and are never cut. If behind schedule by day 4, drop the audio overview first, then saved notes (P3), then the URL source type from P2. A complete, evaluated and hardened P0 is a strong submission on its own; a P0 with several half-built extras around it is not.
 
 ## 4. Quality & engineering (non-feature scope)
 
@@ -73,8 +75,8 @@ Plus: a **pre-seeded demo notebook** so a reviewer can try it in 10 seconds with
 | 3 | Retrieval + grounded chat with citations | T06-T07 |
 | 4 | Notebook UI polish → **MVP submittable** | T08 |
 | 5 | Guide + more source types | T09-T10 |
-| 6 | Audio overview (timeboxed) + notes | T11-T12 |
-| 7 | Evaluation, hardening, README, Loom recording | T13-T15 |
+| 6 | Evaluation + hardening (guaranteed) | T13-T14 |
+| 7 | Notes, audio overview if time allows, README, Loom recording | T12, T11, T15 |
 
 **Rule:** deploy from day 1 and keep `main` deployable. A late surprise in deployment is the most likely way to miss the deadline.
 

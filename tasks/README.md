@@ -31,10 +31,10 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | — | **MVP submittable** | | | | **~13.75h** | **~3.5h** | |
 | [T09](T09-notebook-guide.md) | Notebook guide | hand-off | P1 | T08 | 1.25h | 5 min | todo |
 | [T10](T10-more-source-types.md) | Text, Markdown and URL sources | hand-off | P2 | T08 | 1.75h | 5 min | todo |
-| [T11](T11-audio-overview.md) | Audio overview (timeboxed 3h) | shared | P3 | T09 | 3h | 30 min | todo |
-| [T12](T12-saved-notes.md) | Saved notes | hand-off | P4 | T08 | 1.25h | 5 min | todo |
 | [T13](T13-evaluation.md) | Evaluation | shared | P0 | T08 | 1.5h | 45 min | todo |
 | [T14](T14-hardening.md) | Hardening and polish | agent+check | P0 | T08 | 1.25h | 20 min | todo |
+| [T12](T12-saved-notes.md) | Saved notes | hand-off | P3 | T08 | 1.25h | 5 min | todo |
+| [T11](T11-audio-overview.md) | Audio overview (timeboxed 3h) | shared | Stretch | T09 | 3h | 30 min | todo |
 | [T15](T15-docs-and-video.md) | README, diagram, Loom video | shared | P0 | all | 1.5h | 1.5h | todo |
 | — | **Total** | | | | **~25.25h** | **~6.8h** | |
 
@@ -42,9 +42,9 @@ Every task file has a **Your part** section unless it is `hand-off`.
 
 **Budget warning:** ~25h of agent-assisted work against a ~20h budget. E2E tests added ~2.5h of *agent* time and saved some of yours. Watch the cut line closely.
 
-**Cut line** (from `docs/scope.md`): if behind by day 4, drop T12, then the URL part of T10. If still behind, E2E tests for P2-P4 extras may be reduced to one happy-path test each. T13-T15 are never cut.
+**Cut line** (from `docs/scope.md`): T13 (evaluation) and T14 (hardening) are part of the MVP and are never cut. If behind by day 4, drop T11 (audio overview) first, then T12 (saved notes), then the URL part of T10.
 
-**Recommended order after the MVP:** T09 → T10 → T11 → T12 → T13 → T14 → T15. T13 and T14 can move earlier if the extras run long.
+**Recommended order after the MVP:** T09 → T10 → T13 → T14 → T12 → T11 → T15. T13 and T14 come before the remaining extras — they are guaranteed, the extras are not.
 
 ## Release to production (human)
 

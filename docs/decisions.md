@@ -112,3 +112,11 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Why:** Vercel invocations are isolated. An SSE endpoint couldn't receive events from the ingest function and would end up polling the database itself while holding a connection open. The database is the single source of truth; polling it is simple, survives reloads and extra tabs, and progress stages give detailed feedback anyway.
 **Rejected:** SSE status endpoints (server-side polling in disguise); Supabase Realtime (true push, but extra setup and a second place where access rules must hold — revisit if the 2s delay ever matters); streaming progress from the ingest request itself (still needs polling for reloads, so both would be built).
 
+## D-15 — Move evaluation and hardening ahead of the remaining extras; audio overview becomes a stretch goal
+**Date:** 2026-09-25 · **Status:** proposed
+
+**Decision:** Evaluation (T13) and hardening (T14) are now explicit, never-cut parts of the MVP rather than tasks scheduled after all extras. Saved notes moves ahead of the audio overview in priority (P3), and the audio overview moves from P3 to a stretch goal, attempted only once P0, evaluation and hardening are done.
+**Why:** With a one-week budget, the core RAG pipeline (hybrid retrieval, grounded citations) is the main engineering deliverable, and a real evaluation plus security hardening are what make that deliverable credible. The audio overview is the most memorable demo moment but also the highest-risk build (preview TTS model, long generation) — building it before evaluation/hardening risked losing time on the riskiest feature and leaving the two most important quality checks exposed to the cut line.
+**Rejected:** keeping the original order (audio overview at P3, evaluation/hardening scheduled after all extras) — too much schedule risk on the least certain part of the plan.
+**Consequence:** `docs/scope.md` §3 and §6, and `tasks/README.md`'s board, cut line and recommended order, updated to match.
+
