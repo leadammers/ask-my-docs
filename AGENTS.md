@@ -23,6 +23,7 @@ Before writing code, read:
 6. **Human part.** For `agent+check` and `shared` tasks, finish your part, then list exactly what the human still has to do (from the task's *Your part*).
 7. **Update status.** Set the task to `review` in `tasks/README.md`. Only the human sets `done`.
 8. **Commit** once per task after checks pass: `<type>(T0X): <summary>` (Conventional Commits, e.g. `feat(T05): ingest PDFs into chunks`). **Never push.**
+   Branch naming: work happens on `dev` (branched from `main`); for a task large enough to warrant its own branch, branch from `dev` as `<type>/T0X-slug` (e.g. `feat/t05-pdf-ingestion`), matching the commit type. `main` only moves via a reviewed merge from `dev`.
 
 If a task is ambiguous, contradicts the docs, or turns out much larger than estimated: stop and ask. Do not guess on architecture.
 
