@@ -14,12 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    container:
+      image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v5
 
-      - uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/javascript
-            p/typescript
+      - run: semgrep scan --config p/security-audit --config p/javascript --config p/typescript

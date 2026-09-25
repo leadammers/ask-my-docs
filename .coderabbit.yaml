@@ -38,7 +38,7 @@ reviews:
         drafts: false
 
     path_instructions:
-        - path: "app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx"
+        - path: "{app,lib}/**/*.{ts,tsx}"
           instructions: |
               Hold changes to conventions/principles.md, conventions/code.md and conventions/security.md:
               - Server actions and route handlers validate every input with Zod, with explicit bounds
@@ -95,7 +95,7 @@ reviews:
               `github.event.pull_request.head.repo.full_name == github.repository` so a fork PR
               cannot reach deploy secrets.
 
-        - path: "conventions/*.md,AGENTS.md"
+        - path: "{conventions/*.md,AGENTS.md}"
           instructions: |
               These are the source of truth the rest of the repo is reviewed against — a change here
               is a policy change, not a docs tweak. Flag anything that contradicts docs/decisions.md
