@@ -9,6 +9,9 @@ on:
 env:
   SKIP_ENV_VALIDATION: "1"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -127,7 +130,7 @@ jobs:
           cache: pnpm
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@60.0.1 --ignore-scripts
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
@@ -159,7 +162,7 @@ jobs:
           cache: pnpm
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@60.0.1 --ignore-scripts
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
@@ -191,7 +194,7 @@ jobs:
           cache: pnpm
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@60.0.1 --ignore-scripts
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
