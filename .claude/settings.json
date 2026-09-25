@@ -46,9 +46,15 @@
       "Bash(*--linked*)",
       "Bash(rm:*)",
       "Bash(sudo:*)",
-      "Read(./.env.local)",
       "Read(./.env)",
-      "Read(./.env.*.local)"
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Read(./.env.development)",
+      "Read(./.env.development.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)",
+      "Read(./.env.test)",
+      "Read(./.env.test.local)"
     ]
   }
 }
