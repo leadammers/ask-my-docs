@@ -148,11 +148,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "chunks_source_id_fkey"
-            columns: ["source_id"]
+            foreignKeyName: "chunks_source_notebook_fkey"
+            columns: ["source_id", "notebook_id"]
             isOneToOne: false
             referencedRelation: "sources"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "notebook_id"]
           },
         ]
       }
