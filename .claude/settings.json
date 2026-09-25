@@ -33,10 +33,12 @@
       "Bash(docker ps:*)",
       "Read(./**)"
     ],
-    "deny": [
+    "ask": [
       "Bash(git push:*)",
+      "Bash(git rebase:*)"
+    ],
+    "deny": [
       "Bash(git reset --hard:*)",
-      "Bash(git rebase:*)",
       "Bash(git checkout main:*)",
       "Bash(supabase db push:*)",
       "Bash(supabase link:*)",

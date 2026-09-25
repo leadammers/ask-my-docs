@@ -22,7 +22,7 @@ Before writing code, read:
 5. **Check the acceptance criteria one by one** and report each as met / not met, with evidence.
 6. **Human part.** For `agent+check` and `shared` tasks, finish your part, then list exactly what the human still has to do (from the task's *Your part*).
 7. **Update status.** Set the task to `review` in `tasks/README.md`. Only the human sets `done`.
-8. **Commit** once per task after checks pass: `<type>(T0X): <summary>` (Conventional Commits, e.g. `feat(T05): ingest PDFs into chunks`). **Never push.**
+8. **Commit** once per task after checks pass: `<type>(T0X): <summary>` (Conventional Commits, e.g. `feat(T05): ingest PDFs into chunks`). **Never push without the human's explicit, real-time approval of that specific push** (see "Things the agent must not do").
    Branch naming: work happens on `dev` (branched from `main`); for a task large enough to warrant its own branch, branch from `dev` as `<type>/T0X-slug` (e.g. `feat/t05-pdf-ingestion`), matching the commit type. `main` only moves via a reviewed merge from `dev`.
 
 If a task is ambiguous, contradicts the docs, or turns out much larger than estimated: stop and ask. Do not guess on architecture.
@@ -45,7 +45,8 @@ Every task that adds an entry point (server action, route handler, SQL function)
 
 ## Things the agent must not do
 
-- Push, force-push, rewrite history, or change branch protection
+- Push, force-push, or rewrite history **autonomously**. These require the human's explicit, real-time approval of that specific command (`.claude/settings.json` prompts for it) — never assumed from an earlier approval, never batched, and never for `main`/`dev` directly (feature branches only)
+- Change branch protection
 - Create accounts, touch real API keys, or change Vercel/Supabase dashboard settings — those are human tasks (mode `human`)
 - Run anything against the **hosted** Supabase project: `supabase db push`, `supabase link`, `--linked` flags, seeding production. Development uses the local stack only; releases are human (see `tasks/README.md`)
 - Add dependencies not mentioned in the task without asking first
@@ -54,7 +55,7 @@ Every task that adds an entry point (server action, route handler, SQL function)
 
 ## Permissions
 
-`.claude/settings.json` allows the safe commands without asking and **blocks** pushing, anything touching the hosted Supabase project, and reading `.env.local`. If a command is denied, that is the rule — ask the user, do not work around it.
+`.claude/settings.json` allows the safe commands without asking, **prompts for approval** on `git push` and `git rebase` (per-call, never pre-approved), and **blocks** anything touching the hosted Supabase project and reading `.env.local`. If a command is denied, that is the rule — ask the user, do not work around it.
 
 ## Commands
 
