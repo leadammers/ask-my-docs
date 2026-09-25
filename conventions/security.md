@@ -79,6 +79,8 @@ Per-user limits alone are not enough: clearing cookies creates a new anonymous u
 
 Every AI-calling route or action checks all applicable limits **before** calling the model.
 
+Residual risk: per-user limits reset for anyone willing to clear cookies and pass Turnstile again, so (1)+(2) alone don't stop a determined single visitor from consuming a disproportionate share of the daily quota before (3) trips for everyone. Accepted for the demo since (3) still bounds total spend; a future guard worth considering is a coarser per-IP or per-fingerprint limit ahead of the global cap.
+
 ## 8. Server-side fetching (URL sources)
 
 Fetching user-supplied URLs from our server is a classic SSRF vector.
