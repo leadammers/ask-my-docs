@@ -116,6 +116,8 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
 
       - uses: pnpm/action-setup@v4
 
