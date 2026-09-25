@@ -86,22 +86,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
 
+      # gitleaks-action@v2 only reads the PR commits API's first page (30
+      # commits) and stops working entirely once GitHub-hosted runners drop
+      # Node 20. Scanning the full clone directly with the CLI avoids both:
+      # no commit-range API call, no Node dependency, --redact keeps a match's
+      # actual secret value out of the job log.
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # A finding must never be echoed anywhere the secret value itself could
-          # leak: no SARIF artifact upload, no PR comment containing the match.
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
-          GITLEAKS_ENABLE_COMMENTS: "false"
-          # Job summary lists rule/file/commit only - no secret values.
-          GITLEAKS_ENABLE_SUMMARY: "true"
+        uses: docker://ghcr.io/gitleaks/gitleaks:v8.30.1
+        with:
+          args: git --source=. --redact --no-banner
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
