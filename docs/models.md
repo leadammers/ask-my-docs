@@ -73,7 +73,7 @@ erDiagram
     }
 
     NOTEBOOK_GUIDES {
-        uuid notebook_id PK_FK
+        uuid notebook_id PK,FK
         uuid user_id FK
         text summary
         jsonb topics
