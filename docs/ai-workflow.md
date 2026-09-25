@@ -42,4 +42,4 @@ Add a short entry per task: what the agent did well, what had to be corrected, a
 
 | Task | Agent notes | Human review |
 |---|---|---|
-| — | — | — |
+| T01 | Scaffolded Next.js (App Router, TS strict, Tailwind, shadcn/ui), `lib/env.ts`/`result.ts`/`errors.ts`, Vitest + Playwright, CI (lint/typecheck/test/build + Gitleaks + audit + e2e job) and Dependabot. `pnpm format` reformatted existing docs/tasks/conventions in one pass — reverted and added a `.prettierignore` exclusion so it can't recur. All standard checks pass locally. | — |

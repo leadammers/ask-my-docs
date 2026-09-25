@@ -1,0 +1,14 @@
+.next/
+node_modules/
+pnpm-lock.yaml
+coverage/
+playwright-report/
+test-results/
+
+# Existing project docs — hand-formatted, not owned by this app's Prettier config.
+AGENTS.md
+CLAUDE.md
+README.md
+conventions/
+docs/
+tasks/
