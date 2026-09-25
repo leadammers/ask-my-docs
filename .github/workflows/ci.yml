@@ -99,7 +99,7 @@ jobs:
       - name: Gitleaks
         uses: docker://ghcr.io/gitleaks/gitleaks:v8.30.1
         with:
-          args: git --source=. --redact --no-banner
+          args: git . --redact --no-banner
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
