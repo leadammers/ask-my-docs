@@ -137,7 +137,10 @@ create policy sources_update_owner
 create policy sources_delete_owner
   on sources for delete
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = false)
+  );
 
 -- ---------------------------------------------------------------------------
 -- chunks
@@ -198,7 +201,10 @@ create policy chunks_update_owner
 create policy chunks_delete_owner
   on chunks for delete
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = false)
+  );
 
 -- ---------------------------------------------------------------------------
 -- messages: chat log. Anyone may chat with the demo notebook, but each
@@ -289,7 +295,10 @@ create policy notes_update_owner
 create policy notes_delete_owner
   on notes for delete
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = false)
+  );
 
 -- ---------------------------------------------------------------------------
 -- notebook_guides: one row per notebook, notebook_id is the primary key
@@ -341,7 +350,10 @@ create policy notebook_guides_update_owner
 create policy notebook_guides_delete_owner
   on notebook_guides for delete
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = false)
+  );
 
 -- ---------------------------------------------------------------------------
 -- audio_overviews
@@ -384,7 +396,10 @@ create policy audio_overviews_select_demo
 create policy audio_overviews_delete_owner
   on audio_overviews for delete
   to authenticated
-  using (user_id = (select auth.uid()));
+  using (
+    user_id = (select auth.uid())
+    and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = false)
+  );
 
 -- ---------------------------------------------------------------------------
 -- usage_events: append-only, for rate limiting. Recorded by the server
