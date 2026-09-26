@@ -40,3 +40,6 @@ Thumbs.db
 .smoke-*.mjs
 .debug-*.mjs
 agent-log.md
+
+# playwright auth state (holds a valid demo-gate cookie)
+playwright/.auth/

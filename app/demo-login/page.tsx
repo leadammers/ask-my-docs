@@ -18,7 +18,11 @@ export default async function DemoLoginPage({ searchParams }: DemoLoginPageProps
         ) : error ? (
           <p className="text-destructive text-sm">That password isn&apos;t correct.</p>
         ) : null}
+        <label htmlFor="password" className="text-sm font-medium">
+          Password
+        </label>
         <input
+          id="password"
           type="password"
           name="password"
           autoFocus
