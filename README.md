@@ -1,39 +1,60 @@
 # ask-my-docs
 
-A NotebookLM clone: add your documents to a notebook and chat with them. Every answer is grounded in your sources and cites the exact passage it came from.
+A [NotebookLM](https://notebooklm.google/)–style app for adding documents to notebooks and having conversations grounded entirely in your sources, with citations pointing back to the exact passage behind each answer.
 
-> **Status:** in development. See [tasks/README.md](tasks/README.md) for progress.
+> 🚧 **Status:** In development
+> 
+> See the [implementation plan](tasks/README.md) for current progress.
 
-**Live demo:** _coming soon_ · **Video walkthrough:** _coming soon_
+**Live demo:** [ask-my-docs](YOUR_DEMO_URL) · 🔐 Password required ([request access](YOUR_ACCESS_REQUEST_LINK))
 
-## Features
+---
 
-- Notebooks with PDF, text, Markdown and web-page sources
-- Chat grounded only in your sources, with clickable citations down to the page
-- Honest "not in your sources" answers instead of guesses
-- Notebook guide: summary, key topics, suggested questions
-- Audio overview: a two-host, podcast-style summary
-- Saved notes
+### ✨ Features
 
-## Stack
+* 📚 **Document notebooks** — Upload PDFs, text, Markdown, and web pages
+* 💬 **Grounded chat** — Answers are generated only from your sources
+* 🔗 **Precise citations** — Jump directly to the cited page and passage
+* 🚫 **No guessing** — Clearly says when an answer isn't supported by your sources
+* 🧭 **Notebook guide** — Get summaries, key topics, and suggested questions
+* 🎧 **Audio overview** — Turn your notebook into a two-host, podcast-style summary
+* 📝 **Saved notes** — Keep useful insights alongside your sources
 
-Next.js (TypeScript) on Vercel · Supabase (Postgres + pgvector, Storage, Auth) · Gemini API via the Vercel AI SDK
+---
 
-## Documentation
+### 🛠️ Stack
 
-| | |
-|---|---|
-| [Scope](docs/scope.md) | What is built, what isn't, and in which order |
-| [Architecture](docs/architecture.md) | Data model, ingestion, retrieval, citations, audio |
-| [Decisions](docs/decisions.md) | Why the system looks the way it does |
-| [Conventions](conventions/README.md) | Principles, security rules, code standards |
-| [AI workflow](docs/ai-workflow.md) | How AI coding agents were used to build it |
-| [Tasks](tasks/README.md) | The task-by-task implementation plan |
+| Layer          | Technology                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| App            | <img src="https://cdn.simpleicons.org/nextdotjs" width="18" alt="Next.js" /> **Next.js** · TypeScript             |
+| Hosting        | <img src="https://cdn.simpleicons.org/vercel" width="18" alt="Vercel" /> **Vercel**                               |
+| Database       | <img src="https://cdn.simpleicons.org/supabase" width="18" alt="Supabase" /> **Supabase** · PostgreSQL · pgvector |
+| Storage & Auth | <img src="https://cdn.simpleicons.org/supabase" width="18" alt="Supabase" /> **Supabase**                         |
+| AI             | <img src="https://cdn.simpleicons.org/googlegemini" width="18" alt="Gemini" /> **Gemini API** · Vercel AI SDK     |
 
-## Privacy note
+---
 
-The live demo uses the Gemini API free tier, under which Google may use submitted content to improve its products. **Do not upload confidential documents.**
+### 📖 Documentation
 
-## License
+| Document                             | Description                                            |
+| ------------------------------------ | ------------------------------------------------------ |
+| [Scope](docs/scope.md)               | What is built, what isn't, and in which order          |
+| [Architecture](docs/architecture.md) | Data model, ingestion, retrieval, citations, and audio |
+| [Decisions](docs/decisions.md)       | Why the system is designed the way it is               |
+| [Conventions](conventions/README.md) | Principles, security rules, and code standards         |
+| [AI workflow](docs/ai-workflow.md)   | How AI coding agents were used to build it             |
+| [Tasks](tasks/README.md)             | The task-by-task implementation plan                   |
+
+---
+
+### 🔒 Privacy
+
+The live demo uses the **Gemini API free tier**. Under Google's terms for that tier, submitted content may be used to improve Google's products.
+
+**Please do not upload confidential or sensitive documents.**
+
+---
+
+### 📄 License
 
 MIT — see [LICENSE](LICENSE).
