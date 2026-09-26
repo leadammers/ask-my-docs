@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 
-describe("server-only alias", () => {
+describe('server-only alias', () => {
   it("lets a module importing 'server-only' load under Vitest", async () => {
-    await expect(import("server-only")).resolves.toBeDefined();
+    await expect(import('server-only')).resolves.toBeDefined();
   });
 });

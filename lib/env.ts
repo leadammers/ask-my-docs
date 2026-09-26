@@ -1,10 +1,10 @@
-import "server-only";
-import { z } from "zod";
+import 'server-only';
+import { z } from 'zod';
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  AI_PROVIDER: z.enum(["google", "openai-compatible", "ollama", "mock"]),
+  AI_PROVIDER: z.enum(['google', 'openai-compatible', 'ollama', 'mock']),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
   AI_CHAT_MODEL: z.string().min(1),
   AI_EMBEDDING_MODEL: z.string().min(1),
@@ -34,13 +34,11 @@ type PublicEnv = z.infer<typeof publicSchema>;
 export type Env = ServerEnv & PublicEnv;
 
 function formatIssues(label: string, issues: z.core.$ZodIssue[]): string[] {
-  return issues.map(
-    (issue) => `${label}: ${issue.path.join(".")} — ${issue.message}`,
-  );
+  return issues.map((issue) => `${label}: ${issue.path.join('.')} — ${issue.message}`);
 }
 
 function loadEnv(): Env {
-  if (process.env.SKIP_ENV_VALIDATION === "1") {
+  if (process.env.SKIP_ENV_VALIDATION === '1') {
     return process.env as unknown as Env;
   }
 
@@ -49,12 +47,10 @@ function loadEnv(): Env {
 
   if (!server.success || !client.success) {
     const problems = [
-      ...(server.success ? [] : formatIssues("server", server.error.issues)),
-      ...(client.success ? [] : formatIssues("public", client.error.issues)),
+      ...(server.success ? [] : formatIssues('server', server.error.issues)),
+      ...(client.success ? [] : formatIssues('public', client.error.issues)),
     ];
-    throw new Error(
-      `Invalid or missing environment variables:\n${problems.join("\n")}`,
-    );
+    throw new Error(`Invalid or missing environment variables:\n${problems.join('\n')}`);
   }
 
   return { ...server.data, ...client.data };

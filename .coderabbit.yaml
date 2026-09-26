@@ -7,133 +7,133 @@
 language: en-US
 
 reviews:
-    # The house style: flag what is wrong, skip the running commentary.
-    profile: chill
+  # The house style: flag what is wrong, skip the running commentary.
+  profile: chill
 
-    # Reviews are advisory here. A blocking "changes requested" would sit on top of
-    # the required status checks and the ruleset's own approval requirement, and
-    # only one of those can be cleared by a bot.
-    request_changes_workflow: false
+  # Reviews are advisory here. A blocking "changes requested" would sit on top of
+  # the required status checks and the ruleset's own approval requirement, and
+  # only one of those can be cleared by a bot.
+  request_changes_workflow: false
 
-    poem: false
+  poem: false
 
-    auto_review:
-        enabled: true
-        # One automatic review per pull request, at open — re-review on demand with
-        # `@coderabbitai review` once a fix-up push is actually ready to be looked at,
-        # rather than spending a pass on every intermediate commit.
-        auto_incremental_review: false
-        # `main` is the default branch and is covered without being named. `dev` is
-        # where every task branch lands first. This repo also stacks PRs (a task
-        # branch based on the previous task's still-open branch, e.g. T02 based on
-        # T01) rather than always targeting dev directly — the regex covers those
-        # so a stacked PR still gets reviewed instead of silently skipping.
-        base_branches:
-            - dev
-            - ^feat/.*
-            - ^fix/.*
-            - ^chore/.*
-        # A draft is work in progress by definition; ask for it with
-        # `@coderabbitai review` when it is worth a look.
-        drafts: false
+  auto_review:
+    enabled: true
+    # One automatic review per pull request, at open — re-review on demand with
+    # `@coderabbitai review` once a fix-up push is actually ready to be looked at,
+    # rather than spending a pass on every intermediate commit.
+    auto_incremental_review: false
+    # `main` is the default branch and is covered without being named. `dev` is
+    # where every task branch lands first. This repo also stacks PRs (a task
+    # branch based on the previous task's still-open branch, e.g. T02 based on
+    # T01) rather than always targeting dev directly — the regex covers those
+    # so a stacked PR still gets reviewed instead of silently skipping.
+    base_branches:
+      - dev
+      - ^feat/.*
+      - ^fix/.*
+      - ^chore/.*
+    # A draft is work in progress by definition; ask for it with
+    # `@coderabbitai review` when it is worth a look.
+    drafts: false
 
-    path_instructions:
-        - path: "{app,lib}/**/*.{ts,tsx}"
-          instructions: |
-              Hold changes to conventions/principles.md, conventions/code.md and conventions/security.md:
-              - Server actions and route handlers validate every input with Zod, with explicit bounds
-                (string lengths, array sizes, file size), and resolve the user server-side before
-                touching any row — ownership is checked by loading the target row through the
-                user-scoped client, not assumed from the UI. A missing/foreign row is a 404, never 403.
-              - The service-role client (lib/supabase/admin.ts) must never be reachable from a path
-                where user input decides which rows it touches.
-              - Model output is untrusted: no dangerouslySetInnerHTML, no raw HTML rendering, links
-                restricted to http(s) with rel="noopener noreferrer nofollow".
-              - Pure logic (chunking, citation parsing, RRF fusion, rate-limit math, URL/IP validation,
-                prompt assembly) stays free of DB calls, network calls and Date.now() — see
-                conventions/principles.md, "Pure core, thin I/O shell".
-              - Explicit types on every function/callback parameter and return, including lambdas.
-                No `any`; no non-null assertions without a one-line comment proving the invariant.
-              - No magic strings for status/kind/role fields — enums or const-asserted unions only.
-              Prettier and ESLint own formatting and mechanical style for this folder; do not repeat
-              what they already flag.
+  path_instructions:
+    - path: '{app,lib}/**/*.{ts,tsx}'
+      instructions: |
+        Hold changes to conventions/principles.md, conventions/code.md and conventions/security.md:
+        - Server actions and route handlers validate every input with Zod, with explicit bounds
+          (string lengths, array sizes, file size), and resolve the user server-side before
+          touching any row — ownership is checked by loading the target row through the
+          user-scoped client, not assumed from the UI. A missing/foreign row is a 404, never 403.
+        - The service-role client (lib/supabase/admin.ts) must never be reachable from a path
+          where user input decides which rows it touches.
+        - Model output is untrusted: no dangerouslySetInnerHTML, no raw HTML rendering, links
+          restricted to http(s) with rel="noopener noreferrer nofollow".
+        - Pure logic (chunking, citation parsing, RRF fusion, rate-limit math, URL/IP validation,
+          prompt assembly) stays free of DB calls, network calls and Date.now() — see
+          conventions/principles.md, "Pure core, thin I/O shell".
+        - Explicit types on every function/callback parameter and return, including lambdas.
+          No `any`; no non-null assertions without a one-line comment proving the invariant.
+        - No magic strings for status/kind/role fields — enums or const-asserted unions only.
+        Prettier and ESLint own formatting and mechanical style for this folder; do not repeat
+        what they already flag.
 
-        - path: "supabase/migrations/**/*.sql"
-          instructions: |
-              Hold changes to conventions/database.md and conventions/security.md:
-              - Every table gets `alter table ... enable row level security` in the same migration
-                that creates it. No table is left without RLS.
-              - Owner policies compare against `(select auth.uid())`, not a bare `auth.uid()` (it must
-                be evaluated once per query, not once per row).
-              - Insert/update `with check` clauses that reference a parent notebook must also verify
-                that notebook is not the demo notebook (`is_demo = false`), so demo content can never
-                be written to through an owner policy.
-              - Any select policy granting access to demo content must check both `is_demo = true` on
-                the notebook and that the row's own `user_id` matches `app_settings.demo_owner_id` —
-                a single-condition demo policy lets an attacker poison the demo notebook with rows
-                they own themselves.
-              - Every policy is scoped `to authenticated`; an unscoped policy is reachable by
-                fully unauthenticated requests using only the public anon key.
-              - Storage bucket policies are folder-scoped to the owner's own `auth.uid()`; a
-                client-supplied `storage_path` used elsewhere must be constrained to start with the
-                owner's own id, never trusted as given.
+    - path: 'supabase/migrations/**/*.sql'
+      instructions: |
+        Hold changes to conventions/database.md and conventions/security.md:
+        - Every table gets `alter table ... enable row level security` in the same migration
+          that creates it. No table is left without RLS.
+        - Owner policies compare against `(select auth.uid())`, not a bare `auth.uid()` (it must
+          be evaluated once per query, not once per row).
+        - Insert/update `with check` clauses that reference a parent notebook must also verify
+          that notebook is not the demo notebook (`is_demo = false`), so demo content can never
+          be written to through an owner policy.
+        - Any select policy granting access to demo content must check both `is_demo = true` on
+          the notebook and that the row's own `user_id` matches `app_settings.demo_owner_id` —
+          a single-condition demo policy lets an attacker poison the demo notebook with rows
+          they own themselves.
+        - Every policy is scoped `to authenticated`; an unscoped policy is reachable by
+          fully unauthenticated requests using only the public anon key.
+        - Storage bucket policies are folder-scoped to the owner's own `auth.uid()`; a
+          client-supplied `storage_path` used elsewhere must be constrained to start with the
+          owner's own id, never trusted as given.
 
-        - path: "supabase/tests/**/*.sql"
-          instructions: |
-              A pgTAP `select plan(N)` must match the number of assertions that actually run in the
-              file — flag any mismatch. Every RLS policy added or changed in the same PR needs a
-              matching positive case (the owner can still read/write their own row) and a negative
-              case (a different user is blocked), not just one or the other.
+    - path: 'supabase/tests/**/*.sql'
+      instructions: |
+        A pgTAP `select plan(N)` must match the number of assertions that actually run in the
+        file — flag any mismatch. Every RLS policy added or changed in the same PR needs a
+        matching positive case (the owner can still read/write their own row) and a negative
+        case (a different user is blocked), not just one or the other.
 
-        - path: ".github/workflows/**"
-          instructions: |
-              Every job's `permissions:` is least-privilege; a workflow-level default of
-              `contents: read` should not be widened by a job unless that job names the specific
-              extra scope it needs. Third-party CLI installs are pinned to a specific version, not
-              `@latest`, and use `--ignore-scripts` where the tool doesn't need install-time scripts.
-              A job that deploys using a PR's head branch must gate on
-              `github.event.pull_request.head.repo.full_name == github.repository` so a fork PR
-              cannot reach deploy secrets.
+    - path: '.github/workflows/**'
+      instructions: |
+        Every job's `permissions:` is least-privilege; a workflow-level default of
+        `contents: read` should not be widened by a job unless that job names the specific
+        extra scope it needs. Third-party CLI installs are pinned to a specific version, not
+        `@latest`, and use `--ignore-scripts` where the tool doesn't need install-time scripts.
+        A job that deploys using a PR's head branch must gate on
+        `github.event.pull_request.head.repo.full_name == github.repository` so a fork PR
+        cannot reach deploy secrets.
 
-        - path: "{conventions/*.md,AGENTS.md}"
-          instructions: |
-              These are the source of truth the rest of the repo is reviewed against — a change here
-              is a policy change, not a docs tweak. Flag anything that contradicts docs/decisions.md
-              without an accompanying `proposed` entry there, and anything that lowers the security
-              bar (conventions/security.md) without saying why in the PR description.
+    - path: '{conventions/*.md,AGENTS.md}'
+      instructions: |
+        These are the source of truth the rest of the repo is reviewed against — a change here
+        is a policy change, not a docs tweak. Flag anything that contradicts docs/decisions.md
+        without an accompanying `proposed` entry there, and anything that lowers the security
+        bar (conventions/security.md) without saying why in the PR description.
 
-    tools:
-        # Workflow correctness and workflow security — the Vercel deploy token and the
-        # Supabase service-role key both pass through .github/workflows.
-        actionlint:
-            enabled: true
-        zizmor:
-            enabled: true
-        # Gitleaks also runs as a required check in CI; this is the earlier of the
-        # two warnings, before a secret-bearing commit is even pushed.
-        gitleaks:
-            enabled: true
+  tools:
+    # Workflow correctness and workflow security — the Vercel deploy token and the
+    # Supabase service-role key both pass through .github/workflows.
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    # Gitleaks also runs as a required check in CI; this is the earlier of the
+    # two warnings, before a secret-bearing commit is even pushed.
+    gitleaks:
+      enabled: true
 
-        # Off: both default to an 80-column line. Prettier already owns formatting
-        # for Markdown in this repo (conventions/README.md), and the workflow YAML
-        # carries long `if:` conditions that would report on line length alone.
-        markdownlint:
-            enabled: false
-        yamllint:
-            enabled: false
+    # Off: both default to an 80-column line. Prettier already owns formatting
+    # for Markdown in this repo (conventions/README.md), and the workflow YAML
+    # carries long `if:` conditions that would report on line length alone.
+    markdownlint:
+      enabled: false
+    yamllint:
+      enabled: false
 
-    finishing_touches:
-        # Off: this repo's default is no comments unless the WHY is non-obvious
-        # (conventions/code.md via the team code-style topic). Generated docstrings
-        # would restate what descriptive naming already says.
-        docstrings:
-            enabled: false
+  finishing_touches:
+    # Off: this repo's default is no comments unless the WHY is non-obvious
+    # (conventions/code.md via the team code-style topic). Generated docstrings
+    # would restate what descriptive naming already says.
+    docstrings:
+      enabled: false
 
 knowledge_base:
-    code_guidelines:
-        enabled: true
-        filePatterns:
-            # AGENTS.md is picked up by default; the per-topic conventions it delegates
-            # to are not, and they are the actual source of truth.
-            - files: conventions/*.md
-              applyTo: "app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,supabase/**/*.sql,.github/workflows/**"
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      # AGENTS.md is picked up by default; the per-topic conventions it delegates
+      # to are not, and they are the actual source of truth.
+      - files: conventions/*.md
+        applyTo: 'app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,supabase/**/*.sql,.github/workflows/**'
