@@ -37,6 +37,8 @@ pnpm build
 pnpm test:e2e      # needs the local stack (pnpm db:start) and AI_PROVIDER=mock
 ```
 
+Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
+
 ## Conventions
 
 All coding rules live in [`conventions/`](conventions/README.md). Read `principles.md` and `security.md` before every task; read `code.md`, `database.md` or `ai.md` before touching those areas. Rules conflict? Security > correctness > simplicity > DRY.
@@ -64,6 +66,7 @@ corepack enable            # once, provides pnpm
 pnpm install
 pnpm dev                   # http://localhost:3000
 pnpm lint | typecheck | test | build
+pnpm format                # Prettier (Airbnb-style: single quotes, width 100); format:check to verify
 pnpm db:start              # local Supabase in Docker
 pnpm db:reset              # re-apply migrations + seed locally
 pnpm db:test               # pgTAP tests (RLS)
