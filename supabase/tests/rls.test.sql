@@ -1,6 +1,6 @@
 -- T02: RLS tests (conventions/database.md, docs/architecture.md §3)
 begin;
-select plan(20);
+select plan(30);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, RLS does not apply to the table owner)
@@ -34,6 +34,22 @@ insert into chunks (id, source_id, notebook_id, user_id, ordinal, content) value
 -- poisoned chunk: sits in the demo notebook but is owned by A, not the demo owner
 insert into chunks (id, source_id, notebook_id, user_id, ordinal, content) values
   ('d2000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, 'poisoned chunk');
+
+-- A's own chunk, notes, guide and audio overview: for owner-positive delete checks
+insert into chunks (id, source_id, notebook_id, user_id, ordinal, content) values
+  ('a2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 0, 'A chunk');
+
+insert into notes (id, notebook_id, user_id, title, content, origin) values
+  ('a3000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'A note', 'A note', 'manual'),
+  ('d3000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Demo note', 'Demo note', 'manual');
+
+insert into notebook_guides (notebook_id, user_id, summary) values
+  ('a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'A guide'),
+  ('d0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Demo guide');
+
+insert into audio_overviews (id, notebook_id, user_id, status) values
+  ('a4000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'ready'),
+  ('d4000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'ready');
 
 -- ---------------------------------------------------------------------------
 -- As user A
@@ -132,9 +148,86 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- Back to postgres: prove B's rows survived A's update/delete attempts
+-- DELETE policy coverage: A can delete its own non-demo rows, but demo rows
+-- (owned by the demo owner) stay protected even though A can read them.
+-- ---------------------------------------------------------------------------
+delete from chunks where id = 'd2000000-0000-0000-0000-000000000001';
+delete from sources where id = 'd1000000-0000-0000-0000-000000000001';
+delete from notes where id = 'd3000000-0000-0000-0000-000000000001';
+delete from notebook_guides where notebook_id = 'd0000000-0000-0000-0000-000000000001';
+delete from audio_overviews where id = 'd4000000-0000-0000-0000-000000000001';
+
+delete from chunks where id = 'a2000000-0000-0000-0000-000000000001';
+delete from sources where id = 'a1000000-0000-0000-0000-000000000001';
+delete from notes where id = 'a3000000-0000-0000-0000-000000000001';
+delete from notebook_guides where notebook_id = 'a0000000-0000-0000-0000-000000000001';
+delete from audio_overviews where id = 'a4000000-0000-0000-0000-000000000001';
+
+-- ---------------------------------------------------------------------------
+-- Back to postgres: prove B's rows survived A's update/delete attempts, A's
+-- own non-demo rows are gone, and the demo rows above were never deleted.
 -- ---------------------------------------------------------------------------
 reset role;
+
+select is(
+  (select count(*)::int from chunks where id = 'a2000000-0000-0000-0000-000000000001'),
+  0,
+  'A can delete its own chunk'
+);
+
+select is(
+  (select count(*)::int from sources where id = 'a1000000-0000-0000-0000-000000000001'),
+  0,
+  'A can delete its own source'
+);
+
+select is(
+  (select count(*)::int from notes where id = 'a3000000-0000-0000-0000-000000000001'),
+  0,
+  'A can delete its own note'
+);
+
+select is(
+  (select count(*)::int from notebook_guides where notebook_id = 'a0000000-0000-0000-0000-000000000001'),
+  0,
+  'A can delete its own notebook guide'
+);
+
+select is(
+  (select count(*)::int from audio_overviews where id = 'a4000000-0000-0000-0000-000000000001'),
+  0,
+  'A can delete its own audio overview'
+);
+
+select is(
+  (select count(*)::int from chunks where id = 'd2000000-0000-0000-0000-000000000001'),
+  1,
+  'demo chunk cannot be deleted'
+);
+
+select is(
+  (select count(*)::int from sources where id = 'd1000000-0000-0000-0000-000000000001'),
+  1,
+  'demo source cannot be deleted'
+);
+
+select is(
+  (select count(*)::int from notes where id = 'd3000000-0000-0000-0000-000000000001'),
+  1,
+  'demo note cannot be deleted'
+);
+
+select is(
+  (select count(*)::int from notebook_guides where notebook_id = 'd0000000-0000-0000-0000-000000000001'),
+  1,
+  'demo notebook guide cannot be deleted'
+);
+
+select is(
+  (select count(*)::int from audio_overviews where id = 'd4000000-0000-0000-0000-000000000001'),
+  1,
+  'demo audio overview cannot be deleted'
+);
 
 select is(
   (select title from notebooks where id = 'b0000000-0000-0000-0000-000000000001'),
