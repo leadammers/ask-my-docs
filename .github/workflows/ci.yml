@@ -72,6 +72,9 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       - name: Run E2E tests
+        env:
+          DEMO_PASSWORD: ci-e2e-demo-password
+          DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
         run: pnpm test:e2e
 
       - name: Upload Playwright report
