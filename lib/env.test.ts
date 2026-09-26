@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const REQUIRED_KEYS = [
+  "DEMO_PASSWORD",
+  "DEMO_COOKIE_SECRET",
   "SUPABASE_SERVICE_ROLE_KEY",
   "AI_PROVIDER",
   "GOOGLE_GENERATIVE_AI_API_KEY",

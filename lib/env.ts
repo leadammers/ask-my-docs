@@ -2,6 +2,9 @@ import "server-only";
 import { z } from "zod";
 
 const serverSchema = z.object({
+  DEMO_PASSWORD: z.string().min(1),
+  DEMO_COOKIE_SECRET: z.string().min(32),
+
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   AI_PROVIDER: z.enum(["google", "openai-compatible", "ollama", "mock"]),
