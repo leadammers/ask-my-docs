@@ -1,7 +1,14 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3000;
 const baseURL = `http://localhost:${PORT}`;
+
+export const DEMO_AUTH_STATE = 'playwright/.auth/demo.json';
+
+// Locally the setup test needs DEMO_PASSWORD, which `pnpm dev` reads from
+// .env.local; CI passes it as a job env var instead.
+if (existsSync('.env.local')) process.loadEnvFile('.env.local');
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,9 +21,11 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], storageState: DEMO_AUTH_STATE },
+      dependencies: ['setup'],
     },
   ],
   webServer: {

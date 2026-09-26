@@ -35,3 +35,11 @@ Thumbs.db
 
 # vercel
 .vercel
+
+# agent scratch (smoke tests, debug scripts, cycle log)
+.smoke-*.mjs
+.debug-*.mjs
+agent-log.md
+
+# playwright auth state (holds a valid demo-gate cookie)
+playwright/.auth/

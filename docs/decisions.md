@@ -120,3 +120,11 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Rejected:** keeping the original order (audio overview at P3, evaluation/hardening scheduled after all extras) — too much schedule risk on the least certain part of the plan.
 **Consequence:** `docs/scope.md` §3 and §6, and `tasks/README.md`'s board, cut line and recommended order, updated to match.
 
+## D-16 — Shared demo password in front of anonymous auth
+**Date:** 2026-09-26 · **Status:** proposed
+
+**Decision:** A `/demo-login` route checks a single shared password (env var) and, on success, sets a short-lived (8h), signed, httpOnly cookie via HMAC-SHA256. `proxy.ts` requires this cookie on every route except `/demo-login` and static assets, redirecting elsewhere otherwise. This sits in front of, not instead of, D-05's anonymous Supabase auth — the password gate keeps the deployed app off the open internet during the review window; anonymous auth + RLS still isolate visitors from each other underneath.
+**Why:** The public URL plus a free, shareable LLM quota is an easy target for scraping/abuse once discovered, beyond what D-09's CAPTCHA + rate limits + global cap alone bound. A password known only to reviewers removes that exposure without adding accounts or friction for the people who are supposed to use it.
+**Rejected:** relying solely on D-09's layered abuse protection (CAPTCHA + per-user limits + global cap) — those bound cost but don't prevent a stranger from reaching and using the app at all; Vercel/host-level access control — not available on the free tier used here.
+**Consequence:** One new task (T02b) ahead of T03; two new env vars (`DEMO_PASSWORD`, `DEMO_COOKIE_SECRET`); the README (T15) must state that reviewers need the password, shared out of band.
+
