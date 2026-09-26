@@ -7,7 +7,8 @@ on:
     branches: [main, dev]
 
 env:
-  SKIP_ENV_VALIDATION: "1"
+  SKIP_ENV_VALIDATION: '1'
+  HUSKY: '0'
 
 permissions:
   contents: read
@@ -27,6 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Format check
+        run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
