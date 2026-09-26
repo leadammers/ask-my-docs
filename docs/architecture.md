@@ -67,7 +67,7 @@ One deployable. No separate backend service. See `decisions.md` D-02.
 | URL extraction | `@mozilla/readability` + `linkedom` |
 | Tests | Vitest (unit), pgTAP (RLS), Playwright + axe (E2E per UI task, mock AI provider) |
 | Hosting | Vercel (Hobby) + Supabase (Free) |
-| CI | GitHub Actions: lint, typecheck, test, build |
+| CI | GitHub Actions: lint, typecheck, build; unit tests; pgTAP RLS tests; Playwright E2E; Gitleaks + audit |
 
 ## 3. Data model
 
