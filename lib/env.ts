@@ -2,6 +2,9 @@ import "server-only";
 import { z } from "zod";
 
 const serverSchema = z.object({
+  DEMO_PASSWORD: z.string().min(1),
+  DEMO_COOKIE_SECRET: z.string().min(32),
+
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   AI_PROVIDER: z.enum(["google", "openai-compatible", "ollama", "mock"]),
@@ -44,8 +47,15 @@ function loadEnv(): Env {
     return process.env as unknown as Env;
   }
 
-  const server = serverSchema.safeParse(process.env);
-  const client = publicSchema.safeParse(process.env);
+  // A variable defined but left blank (Vercel UI, `KEY=` in .env files) means
+  // "not set": without this, an empty optional value like OLLAMA_BASE_URL still
+  // has to pass .url() and takes the whole app down at import time.
+  const source = Object.fromEntries(
+    Object.entries(process.env).filter(([, value]) => value !== ""),
+  );
+
+  const server = serverSchema.safeParse(source);
+  const client = publicSchema.safeParse(source);
 
   if (!server.success || !client.success) {
     const problems = [
