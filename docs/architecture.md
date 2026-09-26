@@ -71,6 +71,8 @@ One deployable. No separate backend service. See `decisions.md` D-02.
 
 ## 3. Data model
 
+As-built schema, ER diagram and RLS summary: [`docs/models.md`](models.md) (source of truth: `supabase/migrations/20260925161242_schema_and_rls.sql`, T02). The sketch below is the original spec.
+
 All tables have `user_id uuid not null default auth.uid()` and RLS policies `user_id = auth.uid()` for select/insert/update/delete. The demo notebook is the one exception: owned by a dedicated demo-owner user and readable by everyone only if the notebook has `is_demo = true` **and** the row belongs to the demo owner (so nobody can inject rows into the demo). Writable by no one through the API.
 
 ```sql
