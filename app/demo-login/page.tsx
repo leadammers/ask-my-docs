@@ -4,7 +4,9 @@ type DemoLoginPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-export default async function DemoLoginPage({ searchParams }: DemoLoginPageProps) {
+export default async function DemoLoginPage({
+  searchParams,
+}: DemoLoginPageProps) {
   const { error } = await searchParams;
 
   return (
@@ -16,7 +18,9 @@ export default async function DemoLoginPage({ searchParams }: DemoLoginPageProps
             Too many attempts. Please wait a few minutes and try again.
           </p>
         ) : error ? (
-          <p className="text-destructive text-sm">That password isn&apos;t correct.</p>
+          <p className="text-destructive text-sm">
+            That password isn&apos;t correct.
+          </p>
         ) : null}
         <label htmlFor="password" className="text-sm font-medium">
           Password

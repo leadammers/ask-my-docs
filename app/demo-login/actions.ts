@@ -16,7 +16,8 @@ const passwordSchema = z.string().min(1).max(200);
 
 export async function login(formData: FormData): Promise<void> {
   const headerList = await headers();
-  const clientKey = headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const clientKey =
+    headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   if (isRateLimited(clientKey)) {
     redirect("/demo-login?error=rate_limited");

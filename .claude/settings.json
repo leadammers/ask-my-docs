@@ -37,10 +37,7 @@
       "Bash(docker ps:*)",
       "Read(./**)"
     ],
-    "ask": [
-      "Bash(git push:*)",
-      "Bash(git rebase:*)"
-    ],
+    "ask": ["Bash(git push:*)", "Bash(git rebase:*)"],
     "deny": [
       "Bash(git reset --hard:*)",
       "Bash(git checkout main:*)",

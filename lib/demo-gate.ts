@@ -9,7 +9,11 @@ async function hmacHex(secret: string, message: string): Promise<string> {
     false,
     ["sign"],
   );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(message),
+  );
   return Array.from(new Uint8Array(signature))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
@@ -26,7 +30,10 @@ function timingSafeEqualHex(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-export async function createDemoToken(secret: string, now: number = Date.now()): Promise<string> {
+export async function createDemoToken(
+  secret: string,
+  now: number = Date.now(),
+): Promise<string> {
   const expiresAt = now + DEMO_SESSION_DURATION_MS;
   const signature = await hmacHex(secret, String(expiresAt));
   return `${expiresAt}.${signature}`;
@@ -49,7 +56,11 @@ export async function verifyDemoToken(
   return timingSafeEqualHex(expected, signature);
 }
 
-export async function verifyDemoPassword(secret: string, candidate: string, expected: string): Promise<boolean> {
+export async function verifyDemoPassword(
+  secret: string,
+  candidate: string,
+  expected: string,
+): Promise<boolean> {
   const [candidateHash, expectedHash] = await Promise.all([
     hmacHex(secret, candidate),
     hmacHex(secret, expected),
