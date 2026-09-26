@@ -2,6 +2,9 @@
   "name": "ask-my-docs",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "^22.22.1"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,12 +14,21 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "script": "tsx --conditions=react-server --env-file=.env.local",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > lib/supabase/types.ts",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "eslint --fix --no-warn-ignored",
+      "prettier --write --ignore-unknown"
+    ],
+    "*.{json,css,md,yml,yaml}": "prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -34,6 +46,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26.6.2",
@@ -42,7 +56,9 @@
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
+    "husky": "9.1.7",
     "jsdom": "^30.1.1",
+    "lint-staged": "17.6.0",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "shadcn": "^4.21.0",

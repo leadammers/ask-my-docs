@@ -1,22 +1,18 @@
-export const DEMO_COOKIE_NAME = "demo_session";
+export const DEMO_COOKIE_NAME = 'demo_session';
 export const DEMO_SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
-    "raw",
+    'raw',
     new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ["sign"],
+    ['sign'],
   );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(message),
-  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
   return Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 // Fixed-length digests before comparing, so an early length mismatch never
@@ -30,10 +26,7 @@ function timingSafeEqualHex(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-export async function createDemoToken(
-  secret: string,
-  now: number = Date.now(),
-): Promise<string> {
+export async function createDemoToken(secret: string, now: number = Date.now()): Promise<string> {
   const expiresAt = now + DEMO_SESSION_DURATION_MS;
   const signature = await hmacHex(secret, String(expiresAt));
   return `${expiresAt}.${signature}`;
@@ -46,7 +39,7 @@ export async function verifyDemoToken(
 ): Promise<boolean> {
   if (!token) return false;
 
-  const [expiresAtRaw, signature] = token.split(".");
+  const [expiresAtRaw, signature] = token.split('.');
   if (!expiresAtRaw || !signature) return false;
 
   const expiresAt = Number(expiresAtRaw);

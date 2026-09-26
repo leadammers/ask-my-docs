@@ -38,7 +38,7 @@ reviews:
     drafts: false
 
   path_instructions:
-    - path: "{app,lib}/**/*.{ts,tsx}"
+    - path: '{app,lib}/**/*.{ts,tsx}'
       instructions: |
         Hold changes to conventions/principles.md, conventions/code.md and conventions/security.md:
         - Server actions and route handlers validate every input with Zod, with explicit bounds
@@ -58,7 +58,7 @@ reviews:
         Prettier and ESLint own formatting and mechanical style for this folder; do not repeat
         what they already flag.
 
-    - path: "supabase/migrations/**/*.sql"
+    - path: 'supabase/migrations/**/*.sql'
       instructions: |
         Hold changes to conventions/database.md and conventions/security.md:
         - Every table gets `alter table ... enable row level security` in the same migration
@@ -78,14 +78,14 @@ reviews:
           client-supplied `storage_path` used elsewhere must be constrained to start with the
           owner's own id, never trusted as given.
 
-    - path: "supabase/tests/**/*.sql"
+    - path: 'supabase/tests/**/*.sql'
       instructions: |
         A pgTAP `select plan(N)` must match the number of assertions that actually run in the
         file — flag any mismatch. Every RLS policy added or changed in the same PR needs a
         matching positive case (the owner can still read/write their own row) and a negative
         case (a different user is blocked), not just one or the other.
 
-    - path: ".github/workflows/**"
+    - path: '.github/workflows/**'
       instructions: |
         Every job's `permissions:` is least-privilege; a workflow-level default of
         `contents: read` should not be widened by a job unless that job names the specific
@@ -95,7 +95,7 @@ reviews:
         `github.event.pull_request.head.repo.full_name == github.repository` so a fork PR
         cannot reach deploy secrets.
 
-    - path: "{conventions/*.md,AGENTS.md}"
+    - path: '{conventions/*.md,AGENTS.md}'
       instructions: |
         These are the source of truth the rest of the repo is reviewed against — a change here
         is a policy change, not a docs tweak. Flag anything that contradicts docs/decisions.md
@@ -136,4 +136,4 @@ knowledge_base:
       # AGENTS.md is picked up by default; the per-topic conventions it delegates
       # to are not, and they are the actual source of truth.
       - files: conventions/*.md
-        applyTo: "app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,supabase/**/*.sql,.github/workflows/**"
+        applyTo: 'app/**/*.ts,app/**/*.tsx,lib/**/*.ts,lib/**/*.tsx,supabase/**/*.sql,.github/workflows/**'

@@ -1,26 +1,22 @@
-import { login } from "@/app/demo-login/actions";
+import { login } from '@/app/demo-login/actions';
 
 type DemoLoginPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-export default async function DemoLoginPage({
-  searchParams,
-}: DemoLoginPageProps) {
+export default async function DemoLoginPage({ searchParams }: DemoLoginPageProps) {
   const { error } = await searchParams;
 
   return (
     <main className="flex min-h-full flex-1 items-center justify-center p-8">
       <form action={login} className="flex w-full max-w-sm flex-col gap-4">
         <h1 className="text-xl font-semibold">Enter the demo password</h1>
-        {error === "rate_limited" ? (
+        {error === 'rate_limited' ? (
           <p className="text-destructive text-sm">
             Too many attempts. Please wait a few minutes and try again.
           </p>
         ) : error ? (
-          <p className="text-destructive text-sm">
-            That password isn&apos;t correct.
-          </p>
+          <p className="text-destructive text-sm">That password isn&apos;t correct.</p>
         ) : null}
         <label htmlFor="password" className="text-sm font-medium">
           Password
