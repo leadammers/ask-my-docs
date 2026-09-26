@@ -37,7 +37,7 @@ pnpm build
 pnpm test:e2e      # needs the local stack (pnpm db:start) and AI_PROVIDER=mock
 ```
 
-Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
+Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), commit-msg runs commitlint (Conventional Commits, `commitlint.config.mjs`), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
 
 ## Conventions
 

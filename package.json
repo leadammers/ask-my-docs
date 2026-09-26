@@ -43,6 +43,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26.6.2",
