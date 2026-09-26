@@ -9,7 +9,11 @@ export function isRateLimited(key: string, now: number = Date.now()): boolean {
   const attempts = (attemptsByKey.get(key) ?? []).filter(
     (timestamp) => now - timestamp < WINDOW_MS,
   );
-  attemptsByKey.set(key, attempts);
+  if (attempts.length === 0) {
+    attemptsByKey.delete(key);
+  } else {
+    attemptsByKey.set(key, attempts);
+  }
   return attempts.length >= MAX_ATTEMPTS;
 }
 

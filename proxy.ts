@@ -14,7 +14,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const secret = process.env.DEMO_COOKIE_SECRET!;
+  const secret = process.env.DEMO_COOKIE_SECRET;
+  if (!secret || secret.length < 32) {
+    return new NextResponse("Server misconfigured", { status: 500 });
+  }
+
   const token = request.cookies.get(DEMO_COOKIE_NAME)?.value;
   const isAuthorized = await verifyDemoToken(secret, token);
 
