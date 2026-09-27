@@ -128,3 +128,10 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Rejected:** relying solely on D-09's layered abuse protection (CAPTCHA + per-user limits + global cap) — those bound cost but don't prevent a stranger from reaching and using the app at all; Vercel/host-level access control — not available on the free tier used here.
 **Consequence:** One new task (T02b) ahead of T03; two new env vars (`DEMO_PASSWORD`, `DEMO_COOKIE_SECRET`); the README (T15) must state that reviewers need the password, shared out of band.
 
+## D-17 — Notebook limit enforced by a database trigger
+**Date:** 2026-09-27 · **Status:** proposed
+
+**Decision:** The 5-notebook-per-user limit is enforced by a `before insert` trigger on `notebooks` (`20260927140000_notebook_limit.sql`) that takes a per-user transaction advisory lock, counts, and raises `check_violation` at the cap. `createNotebook` still counts first for a quick, friendly error and maps the trigger's error to `limit_reached`.
+**Why:** RLS (`notebooks_insert_owner`) lets any signed-in user insert through the API directly, bypassing the server action — an app-only check would let one visitor create unlimited notebooks and fill the free-tier database. The advisory lock also closes the race where two parallel creates both pass the count.
+**Rejected:** app-only count-then-insert (bypassable, racy); a check constraint (can't count other rows); `SELECT … FOR UPDATE` (nothing to lock before the first notebook exists).
+**Consequence:** The limit lives in two places — `MAX_NOTEBOOKS_PER_USER` in `lib/config.ts` and the trigger — with comments pointing at each other. Covered by `supabase/tests/notebook_limit.test.sql`.

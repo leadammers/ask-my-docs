@@ -92,6 +92,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.118.0
+
+      # The app authenticates and queries against a real local Supabase
+      # instance in these tests (anonymous sign-in, notebooks CRUD), so the
+      # webServer step below needs real project keys, not just SKIP_ENV_VALIDATION.
+      - name: Start local Supabase and export its keys
+        run: |
+          supabase start
+          supabase db reset
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '"')"
+          } >> "$GITHUB_ENV"
+
       - name: Cache Playwright browsers
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: playwright-cache
@@ -111,6 +128,7 @@ jobs:
         env:
           DEMO_PASSWORD: ci-e2e-demo-password
           DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
+          AI_PROVIDER: mock
         run: pnpm test:e2e
 
       - name: Upload Playwright report

@@ -6,9 +6,13 @@ const baseURL = `http://localhost:${PORT}`;
 
 export const DEMO_AUTH_STATE = 'playwright/.auth/demo.json';
 
-// Locally the setup test needs DEMO_PASSWORD, which `pnpm dev` reads from
-// .env.local; CI passes it as a job env var instead.
-if (existsSync('.env.local')) process.loadEnvFile('.env.local');
+// Locally, e2e needs values that must differ from normal dev (DEMO_PASSWORD
+// for the setup test to type in, AI_PROVIDER=mock so a real Gemini key in
+// .env.local is never called) — kept in .env.test.local, gitignored, copied
+// from .env.test.example. Node doesn't override already-set process.env vars
+// from a later file load, so this wins over whatever `pnpm dev` itself would
+// read from .env.local. CI sets the same values as job env vars instead.
+if (existsSync('.env.test.local')) process.loadEnvFile('.env.test.local');
 
 export default defineConfig({
   testDir: './e2e',

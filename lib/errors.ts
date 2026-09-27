@@ -3,6 +3,7 @@ export type ErrorCode =
   | 'not_found'
   | 'invalid_input'
   | 'rate_limited'
+  | 'limit_reached'
   | 'daily_cap_reached'
   | 'unexpected';
 
@@ -11,6 +12,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   not_found: "We couldn't find that.",
   invalid_input: "That input isn't valid.",
   rate_limited: "You're doing that too often — try again in a moment.",
+  limit_reached: "You've reached the notebook limit for this demo.",
   daily_cap_reached: 'Daily demo limit reached. Please try again after midnight UTC.',
   unexpected: 'Something went wrong. Please try again.',
 };

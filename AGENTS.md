@@ -34,7 +34,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm test:e2e      # needs the local stack (pnpm db:start) and AI_PROVIDER=mock
+pnpm test:e2e      # needs the local stack (pnpm db:start) and .env.test.local (copy .env.test.example)
 ```
 
 Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), commit-msg runs commitlint (Conventional Commits, `commitlint.config.mjs`), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
@@ -74,6 +74,12 @@ pnpm db:types              # regenerate lib/supabase/types.ts from the local DB
 pnpm script scripts/x.ts   # run a script with .env.local (may call Gemini)
 pnpm eval                  # run the evaluation (T13)
 ```
+
+## Repo notes (claude-cost-orchestrator /optimize)
+
+- E2E env vars come from `supabase status -o env` (ANON_KEY, API_URL, SERVICE_ROLE_KEY, etc.) — not in any `.env` file.
+- Playwright + Radix Dialog: while a dialog is open, the rest of the page is `aria-hidden` — role queries on background content fail until the dialog closes, even though the DOM elements exist.
+- `SKIP_ENV_VALIDATION=1` is set for every CI job (lint/test/build/e2e) — `lib/env.ts`'s Zod validation only actually runs in the `vercel build` deploy steps, which pull real env vars via `vercel pull`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -284,18 +284,18 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- app_settings is read-only through the API for everyone: no update policy
--- exists, so the update matches zero rows instead of raising.
+-- app_settings is read-only through the API for everyone: authenticated has
+-- no update grant at all (20260927130918_explicit_grants.sql), so this
+-- raises before RLS even gets a chance to evaluate a (nonexistent) policy.
 -- ---------------------------------------------------------------------------
-update app_settings set demo_owner_id = '22222222-2222-2222-2222-222222222222' where id = true;
-
-reset role;
-
-select is(
-  (select demo_owner_id from app_settings),
-  '33333333-3333-3333-3333-333333333333'::uuid,
+select throws_ok(
+  $$update app_settings set demo_owner_id = '22222222-2222-2222-2222-222222222222' where id = true$$,
+  '42501',
+  'permission denied for table app_settings',
   'nobody can update app_settings through the API'
 );
+
+reset role;
 
 select * from finish();
 rollback;
