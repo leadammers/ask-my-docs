@@ -75,6 +75,12 @@ pnpm script scripts/x.ts   # run a script with .env.local (may call Gemini)
 pnpm eval                  # run the evaluation (T13)
 ```
 
+## Repo notes (claude-cost-orchestrator /optimize)
+
+- E2E env vars come from `supabase status -o env` (ANON_KEY, API_URL, SERVICE_ROLE_KEY, etc.) — not in any `.env` file.
+- Playwright + Radix Dialog: while a dialog is open, the rest of the page is `aria-hidden` — role queries on background content fail until the dialog closes, even though the DOM elements exist.
+- `SKIP_ENV_VALIDATION=1` is set for every CI job (lint/test/build/e2e) — `lib/env.ts`'s Zod validation only actually runs in the `vercel build` deploy steps, which pull real env vars via `vercel pull`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
