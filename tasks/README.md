@@ -24,7 +24,7 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T02](T02-schema-and-rls.md) | Local Supabase, schema, RLS, storage | hand-off | P0 | T00, T01 | 1.25h | 10 min | done |
 | [T02b](T02b-demo-password-gate.md) | Demo password gate (signed cookie in front of the app) | shared | P0 | T02 | 0.75h | 10 min | done |
 | [T03](T03-auth-notebooks-deploy.md) | Anonymous auth + CAPTCHA, notebooks CRUD, first deploy | shared | P0 | T02b | 1.75h | 30 min | review |
-| [T04](T04-ai-provider-layer.md) | AI provider layer, rate limits, global cap | hand-off | P0 | T01, T02 | 0.75h | 10 min | todo |
+| [T04](T04-ai-provider-layer.md) | AI provider layer, rate limits, global cap | hand-off | P0 | T01, T02 | 0.75h | 10 min | in-progress |
 | [T05](T05-pdf-ingestion.md) | PDF upload and ingestion pipeline | hand-off | P0 | T03, T04 | 2.25h | 5 min | todo |
 | [T06](T06-hybrid-retrieval.md) | Hybrid retrieval (vector + full-text, RRF) | hand-off | P0 | T05 | 1h | 10 min | todo |
 | [T07](T07-grounded-chat.md) | Grounded chat with citations | agent+check | P0 | T06 | 2.25h | 20 min | todo |

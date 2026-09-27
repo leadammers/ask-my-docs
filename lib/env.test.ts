@@ -51,6 +51,9 @@ describe('env', () => {
       delete process.env[key];
     }
     delete process.env.SKIP_ENV_VALIDATION;
+    delete process.env.VERCEL_ENV;
+    delete process.env.OLLAMA_BASE_URL;
+    delete process.env.OPENAI_COMPATIBLE_BASE_URL;
   });
 
   afterEach(() => {
@@ -76,5 +79,31 @@ describe('env', () => {
   it('does not throw when SKIP_ENV_VALIDATION=1 is set', async () => {
     process.env.SKIP_ENV_VALIDATION = '1';
     await expect(import('@/lib/env')).resolves.toBeDefined();
+  });
+
+  it('rejects AI_PROVIDER=mock in Vercel production', async () => {
+    setValidEnv();
+    process.env.AI_PROVIDER = 'mock';
+    process.env.VERCEL_ENV = 'production';
+    await expect(import('@/lib/env')).rejects.toThrow(/AI_PROVIDER=mock/);
+  });
+
+  it('allows AI_PROVIDER=mock in Vercel preview', async () => {
+    setValidEnv();
+    process.env.AI_PROVIDER = 'mock';
+    process.env.VERCEL_ENV = 'preview';
+    await expect(import('@/lib/env')).resolves.toBeDefined();
+  });
+
+  it('rejects AI_PROVIDER=ollama without OLLAMA_BASE_URL', async () => {
+    setValidEnv();
+    process.env.AI_PROVIDER = 'ollama';
+    await expect(import('@/lib/env')).rejects.toThrow(/OLLAMA_BASE_URL/);
+  });
+
+  it('rejects AI_PROVIDER=openai-compatible without OPENAI_COMPATIBLE_BASE_URL', async () => {
+    setValidEnv();
+    process.env.AI_PROVIDER = 'openai-compatible';
+    await expect(import('@/lib/env')).rejects.toThrow(/OPENAI_COMPATIBLE_BASE_URL/);
   });
 });

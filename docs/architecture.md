@@ -193,12 +193,14 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=        # server only: demo seeding, admin tasks
 
-AI_PROVIDER=google                # google | openai-compatible | ollama (local dev)
+AI_PROVIDER=google                # google | openai-compatible | ollama (local dev) | mock (E2E/CI; refused in Vercel production)
 GOOGLE_GENERATIVE_AI_API_KEY=
 AI_CHAT_MODEL=                    # current Gemini Flash model ID from AI Studio
 AI_EMBEDDING_MODEL=gemini-embedding-001
 AI_EMBEDDING_DIMENSIONS=768
 AI_TTS_MODEL=                     # current Gemini TTS model ID from AI Studio
+OLLAMA_BASE_URL=                  # when AI_PROVIDER=ollama
+OPENAI_COMPATIBLE_BASE_URL= / OPENAI_COMPATIBLE_API_KEY=   # when AI_PROVIDER=openai-compatible
 
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=    # CAPTCHA on anonymous sign-in
 AI_GLOBAL_DAILY_CAP=500           # circuit breaker across all users
@@ -247,13 +249,14 @@ app/
   api/audio/route.ts
 components/                      UI (shadcn/ui in components/ui)
 lib/
-  ai/                            provider, models, embeddings, tts
+  ai/                            provider.ts, mock.ts, embeddings.ts, retry.ts, usage.ts (tts later)
   ingest/                        adapters/, chunk.ts, pipeline.ts
   retrieval/
   chat/                          prompt.ts, citations.ts
   studio/                        guide.ts, audio.ts, wav.ts
-  supabase/                      client.ts, server.ts, types.ts (generated)
-  rate-limit.ts
+  supabase/                      client.ts, server.ts, admin.ts (service role), types.ts (generated)
+  rate-limit.ts                  per-user limits + global daily cap over usage_events
+  errors.ts                      error codes → HTTP status + user message
 supabase/
   migrations/
   seed/                          demo notebook sources

@@ -5,6 +5,7 @@ export type ErrorCode =
   | 'rate_limited'
   | 'limit_reached'
   | 'daily_cap_reached'
+  | 'quota_exceeded'
   | 'unexpected';
 
 const MESSAGES: Record<ErrorCode, string> = {
@@ -13,10 +14,62 @@ const MESSAGES: Record<ErrorCode, string> = {
   invalid_input: "That input isn't valid.",
   rate_limited: "You're doing that too often — try again in a moment.",
   limit_reached: "You've reached the notebook limit for this demo.",
-  daily_cap_reached: 'Daily demo limit reached. Please try again after midnight UTC.',
+  daily_cap_reached: 'The daily demo limit is reached — please try again tomorrow.',
+  quota_exceeded: 'The free AI quota is exhausted right now — try again in a minute.',
   unexpected: 'Something went wrong. Please try again.',
+};
+
+const STATUS: Record<ErrorCode, number> = {
+  unauthorized: 401,
+  not_found: 404,
+  invalid_input: 400,
+  rate_limited: 429,
+  limit_reached: 409,
+  daily_cap_reached: 429,
+  quota_exceeded: 503,
+  unexpected: 500,
 };
 
 export function userMessage(code: ErrorCode): string {
   return MESSAGES[code];
+}
+
+/** An expected failure that maps to a known error code; anything else is `unexpected`. */
+export class AppError extends Error {
+  constructor(
+    readonly code: ErrorCode,
+    options?: { cause?: unknown },
+  ) {
+    super(code, options);
+    this.name = 'AppError';
+  }
+}
+
+export class RateLimitError extends AppError {
+  constructor() {
+    super('rate_limited');
+    this.name = 'RateLimitError';
+  }
+}
+
+export class DailyCapReachedError extends AppError {
+  constructor() {
+    super('daily_cap_reached');
+    this.name = 'DailyCapReachedError';
+  }
+}
+
+export class QuotaExceededError extends AppError {
+  constructor(options?: { cause?: unknown }) {
+    super('quota_exceeded', options);
+    this.name = 'QuotaExceededError';
+  }
+}
+
+export type ErrorResponse = { status: number; code: ErrorCode; userMessage: string };
+
+/** Maps any thrown value to what a route may send to the client — never raw error details. */
+export function toErrorResponse(error: unknown): ErrorResponse {
+  const code: ErrorCode = error instanceof AppError ? error.code : 'unexpected';
+  return { status: STATUS[code], code, userMessage: MESSAGES[code] };
 }
