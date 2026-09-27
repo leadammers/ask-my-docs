@@ -22,7 +22,17 @@ export default async function HomePage() {
     .order('is_demo', { ascending: false })
     .order('updated_at', { ascending: false });
 
-  if (error) throw new Error('Failed to load notebooks');
+  if (error) {
+    console.error(
+      JSON.stringify({
+        operation: 'notebooks.list',
+        userId: user.id,
+        code: error.code,
+        message: error.message,
+      }),
+    );
+    throw new Error('Failed to load notebooks');
+  }
 
   const list = notebooks ?? [];
 
