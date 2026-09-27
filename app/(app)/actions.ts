@@ -28,6 +28,9 @@ export async function createNotebook(title: string): Promise<Result<{ id: string
     .insert({ title: parsedTitle.data })
     .select('id')
     .single();
+  // The database trigger is the real limit (a parallel create can pass the
+  // count above); it raises check_violation (23514) — see notebook_limit migration.
+  if (error?.code === '23514') return fail('limit_reached');
   if (error || !data) return fail('unexpected');
 
   revalidatePath('/');
