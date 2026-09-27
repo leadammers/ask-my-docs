@@ -88,6 +88,20 @@ describe('env', () => {
     expect(env.AI_EMBEDDING_DIMENSIONS).toBe(768);
   });
 
+  it('ignores invalid values instead of throwing when SKIP_ENV_VALIDATION=1 is set', async () => {
+    // `vercel build` in CI sees placeholders instead of the real (sensitive) values.
+    process.env.SKIP_ENV_VALIDATION = '1';
+    process.env.AI_PROVIDER = 'placeholder';
+    process.env.DEMO_COOKIE_SECRET = 'short';
+    process.env.MAX_UPLOAD_MB = 'placeholder';
+    process.env.AI_EMBEDDING_DIMENSIONS = '768';
+    const { env } = await import('@/lib/env');
+    expect(env.AI_PROVIDER).toBeUndefined();
+    expect(env.DEMO_COOKIE_SECRET).toBeUndefined();
+    expect(env.MAX_UPLOAD_MB).toBeUndefined();
+    expect(env.AI_EMBEDDING_DIMENSIONS).toBe(768);
+  });
+
   it('does not require GOOGLE_GENERATIVE_AI_API_KEY for other providers', async () => {
     setValidEnv();
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;

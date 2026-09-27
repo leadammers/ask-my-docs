@@ -82,6 +82,20 @@ function formatIssues(label: string, issues: z.core.$ZodIssue[]): string[] {
   return issues.map((issue) => `${label}: ${issue.path.join('.')} — ${issue.message}`);
 }
 
+// Parses each variable on its own and keeps only the ones that are valid.
+// Used when validation is skipped: `vercel build` in CI sees placeholders for
+// sensitive values, which must not fail the build (the real values are
+// validated at runtime), while valid values still come out typed.
+function parseLenient(shape: z.ZodObject, input: Record<string, unknown>): Record<string, unknown> {
+  const parsed: Record<string, unknown> = {};
+  for (const [key, field] of Object.entries(shape.shape)) {
+    if (!(key in input)) continue;
+    const result = (field as z.ZodType).safeParse(input[key]);
+    if (result.success) parsed[key] = result.data;
+  }
+  return parsed;
+}
+
 function loadEnv(): Env {
   // A variable defined but left blank (Vercel UI, `KEY=` in .env files) means
   // "not set": without this, an empty optional value like OLLAMA_BASE_URL still
@@ -91,12 +105,9 @@ function loadEnv(): Env {
   );
 
   // CI and unit tests run without real secrets: nothing is required, but values
-  // that are set are still parsed, so numbers are numbers there too.
+  // that are set and valid are still parsed, so numbers are numbers there too.
   if (process.env.SKIP_ENV_VALIDATION === '1') {
-    return {
-      ...serverShape.partial().parse(source),
-      ...publicShape.partial().parse(source),
-    } as Env;
+    return { ...parseLenient(serverShape, source), ...parseLenient(publicShape, source) } as Env;
   }
 
   const server = serverSchema.safeParse(source);
