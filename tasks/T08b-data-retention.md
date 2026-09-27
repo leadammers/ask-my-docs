@@ -1,0 +1,48 @@
+# T08b — Data retention for inactive anonymous users
+
+**Mode:** shared · **Priority:** P0 · **Depends on:** T05 · **Estimate:** 1.25h · **Your time:** 15 min
+
+## Goal
+Data of anonymous users who stop coming back is deleted automatically after a fixed retention period — database rows **and** storage objects — and every visitor is told about it by a visible banner before they start uploading.
+
+## Your part
+- Confirm the retention period (default: **30 days** without a visit). The banner, the README and the cleanup job all read it from one constant.
+- Generate `CRON_SECRET` (`openssl rand -hex 32`) and set it in Vercel (Production). Vercel sends it to the cron route automatically.
+- After the first production run: check Vercel's cron log and the Storage buckets — no objects left under deleted users' folders, demo notebook untouched.
+
+## Context
+- `conventions/security.md` §5 (storage objects are deleted together with their rows), §10 (service-role key), §12 ("collect nothing that isn't needed")
+- `docs/scope.md` §2: users must be able to "return later in the same browser" — so this is a retention period, not deletion at session end
+- `docs/architecture.md` §3: every table has `user_id … references auth.users on delete cascade`; storage paths are `{userId}/{sourceId}.{ext}`
+
+## Scope
+- **Single source of truth:** `RETENTION_DAYS` in `lib/config.ts`, used by the cleanup, the banner and the README.
+- **Selection (pure core):** `lib/retention.ts` — given users with their last-activity timestamp, `now` and `RETENTION_DAYS`, return the ids due for deletion; never the demo owner (`app_settings.demo_owner_id`), never non-anonymous users. Unit tested (boundary day, demo owner, empty input).
+- **Last activity:** the latest of `auth.users.last_sign_in_at`, the user's most recent `auth.sessions` refresh, and their newest `notebooks.updated_at`. Read it through a SQL function (`security definer`, `set search_path = ''`), `grant execute` to `service_role` only, revoked from `public`, `anon` and `authenticated`.
+- **Deletion order per user:** remove all objects under `{userId}/` in the `sources` and `audio` buckets via the Storage API, **then** `auth.admin.deleteUser(id)`; the FK cascade removes the rows. Never delete rows from `storage.objects` with SQL. Cap each run (e.g. 100 users) so it finishes within the function timeout; the next run continues.
+- **Trigger:** Vercel Cron, once a day (Hobby allows daily) → `app/api/cron/retention/route.ts`. Rejects any request without `Authorization: Bearer ${CRON_SECRET}` (constant-time compare). Add the path to `proxy.ts`'s gate exemptions — it is protected by `CRON_SECRET`, not the demo cookie. `CRON_SECRET` in `lib/env.ts` and `.env.example`.
+- **Logging:** structured JSON with counts only (users deleted, objects removed, duration) — no user ids in logs.
+- **Banner:** a notice at the top of every app page (not `/demo-login`): anonymous session tied to this browser, data deleted after `RETENTION_DAYS` days without a visit, don't upload confidential documents (free-tier Gemini notice from `conventions/security.md` §12). Dismissible; dismissal remembered in `localStorage` (wrapped in try/catch — renders correctly without it). Text in one place, not duplicated with T08's upload-dialog notice.
+- **Docs:** retention period in the README's limitations/privacy section; one line in `conventions/security.md` §12; append a `proposed` decision to `docs/decisions.md` (next free number).
+
+## Out of scope
+- Deleting individual stale notebooks of active users
+- A "delete my data now" button (users can already delete notebooks)
+- pg_cron / Supabase Edge Functions — Vercel Cron keeps everything in one deployable
+
+## Acceptance criteria
+- [ ] A user inactive for more than `RETENTION_DAYS` loses their auth user, all rows and all storage objects; an active user and the demo owner keep everything (integration test against the local stack, with backdated timestamps)
+- [ ] The cron route returns 401 without the correct bearer token and is reachable without the demo cookie
+- [ ] The SQL function is not executable by `anon` or `authenticated` (pgTAP)
+- [ ] The banner is visible on first visit, shows the retention period from `RETENTION_DAYS`, stays dismissed after a reload, and has no axe violations (Playwright)
+- [ ] First production run completes; no orphaned objects in Storage; demo notebook intact (human)
+
+## Verification
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm db:reset && pnpm db:test && pnpm test:e2e
+```
+
+## Notes for the agent
+- Vercel Cron only runs on **production** deployments, defined under `crons` in `vercel.json`. Test the route locally by calling it with the bearer token.
+- The service-role client (`lib/supabase/admin.ts`) is fine here: the ids come from the database query, never from request input.
+- Follow the explicit-grants rule for the new SQL function (hosted Supabase does not grant defaults).

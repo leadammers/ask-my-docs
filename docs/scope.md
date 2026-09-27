@@ -52,7 +52,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | Evaluation | Small, honest: ~15-20 questions over the demo notebook — retrieval hit rate, citation correctness, correct refusal on out-of-scope questions. Script + results table in `docs/evaluation.md`. |
 | CI | Lint, typecheck, unit tests, build on every push (GitHub Actions). |
 | Security | Row-level security on every table; uploads go straight to storage (never through the app server); per-user rate limits and upload caps; secrets only in env vars. |
-| Privacy | The Gemini free tier may use submitted content to improve Google's products. The UI and README say so plainly: do not upload confidential documents. |
+| Privacy | The Gemini free tier may use submitted content to improve Google's products. The UI and README say so plainly: do not upload confidential documents. Data of anonymous users is deleted after a fixed period without a visit (T08b); a banner says so. |
 | Docs | README (what / how / run locally / architecture / limitations), architecture, decisions, evaluation, AI workflow. |
 
 ## 5. Explicitly out of scope
@@ -73,7 +73,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | 1 | Docker + accounts, scaffold, local schema, **live URL exists** | T00-T03 |
 | 2 | Provider layer + PDF ingestion | T04-T05 |
 | 3 | Retrieval + grounded chat with citations | T06-T07 |
-| 4 | Notebook UI polish → **MVP submittable** | T08 |
+| 4 | Notebook UI polish → **MVP submittable** | T08, T08b (data retention + banner) |
 | 5 | Guide + more source types | T09-T10 |
 | 6 | Evaluation + hardening (guaranteed) | T13-T14 |
 | 7 | Notes, audio overview if time allows, README, Loom recording | T12, T11, T15 |
