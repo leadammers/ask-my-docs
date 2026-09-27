@@ -12,7 +12,9 @@ setup('pass the demo password gate', async ({ page }) => {
   await page.getByRole('button', { name: 'Enter' }).click();
 
   await page.waitForURL('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('ask-my-docs');
+  // The notebooks page only renders once AuthGate has silently signed the
+  // visitor in anonymously and refreshed the server component — no login UI.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
 
   await page.context().storageState({ path: DEMO_AUTH_STATE });
 });

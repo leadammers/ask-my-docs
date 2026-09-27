@@ -1,0 +1,2 @@
+export const MAX_NOTEBOOKS_PER_USER = 5;
+export const NOTEBOOK_TITLE_MAX_LENGTH = 200;
