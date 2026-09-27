@@ -128,3 +128,11 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Rejected:** relying solely on D-09's layered abuse protection (CAPTCHA + per-user limits + global cap) — those bound cost but don't prevent a stranger from reaching and using the app at all; Vercel/host-level access control — not available on the free tier used here.
 **Consequence:** One new task (T02b) ahead of T03; two new env vars (`DEMO_PASSWORD`, `DEMO_COOKIE_SECRET`); the README (T15) must state that reviewers need the password, shared out of band.
 
+## D-17 — Notebook-limit check accepts a small TOCTOU race
+**Date:** 2026-09-27 · **Status:** proposed
+
+**Decision:** `createNotebook` (`app/(app)/actions.ts`) counts a user's notebooks and then inserts if under the cap, without a transaction or a DB-level constraint enforcing the limit atomically. Two concurrent create calls from the same session can both read a count under the cap and both insert, letting one user briefly exceed `MAX_NOTEBOOKS_PER_USER`.
+**Why:** The limit exists to bound demo storage/quota, not as a security boundary — it's per-user, self-inflicted, and has no cross-user impact. A `SELECT ... FOR UPDATE` or a DB check constraint with a retry would close the race but adds real complexity (locking or constraint-violation handling) for a one-week demo where the worst case is a handful of extra rows.
+**Rejected:** transactional row lock or DB check constraint — correct, but not proportionate to the risk for this project's timeline.
+**Consequence:** None functionally; noted here so it isn't rediscovered as a surprise later.
+

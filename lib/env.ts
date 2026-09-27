@@ -26,11 +26,22 @@ const serverSchema = z.object({
   MAX_SOURCES_PER_NOTEBOOK: z.coerce.number().int().positive(),
 });
 
-const publicSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
-});
+const publicSchema = z
+  .object({
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
+  })
+  // The site key is optional only for local dev (auth-gate.tsx skips the
+  // widget when it's empty). A missing or misnamed Vercel env var must fail
+  // the build, not silently ship anonymous sign-in with no CAPTCHA.
+  .refine(
+    (value) => process.env.NODE_ENV !== 'production' || !!value.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    {
+      message: 'NEXT_PUBLIC_TURNSTILE_SITE_KEY is required in production',
+      path: ['NEXT_PUBLIC_TURNSTILE_SITE_KEY'],
+    },
+  );
 
 type ServerEnv = z.infer<typeof serverSchema>;
 type PublicEnv = z.infer<typeof publicSchema>;
