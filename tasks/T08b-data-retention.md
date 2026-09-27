@@ -3,7 +3,7 @@
 **Mode:** shared · **Priority:** P0 · **Depends on:** T05 · **Estimate:** 1.5h · **Your time:** 15 min
 
 ## Goal
-Data of anonymous users who stop coming back is deleted automatically after a fixed retention period — database rows **and** storage objects — and every visitor is told about it by a visible banner before they start uploading.
+Data of anonymous users who stop coming back is deleted automatically after a fixed retention period — database rows **and** storage objects — and every visitor is told about it: a banner on their first visit and a short, permanent line in the footer.
 
 ## Your part
 - Confirm the retention period (default: **30 days** without a visit). The banner, the README and the cleanup job all read it from one constant.
@@ -25,7 +25,8 @@ Data of anonymous users who stop coming back is deleted automatically after a fi
 - **Deletion order per user:** remove all objects under `{userId}/` in the `sources` and `audio` buckets via the Storage API, **then** `auth.admin.deleteUser(id)`; the FK cascade removes the rows. Never delete rows from `storage.objects` with SQL. Cap each run (e.g. 100 users) so it finishes within the function timeout; the next run continues.
 - **Trigger:** Vercel Cron, once a day (Hobby allows daily) → `app/api/cron/retention/route.ts`. Rejects any request without `Authorization: Bearer ${CRON_SECRET}` (constant-time compare). Add the path to `proxy.ts`'s gate exemptions — it is protected by `CRON_SECRET`, not the demo cookie. `CRON_SECRET` in `lib/env.ts` and `.env.example`.
 - **Logging:** structured JSON with counts only (users deleted, objects removed, duration) — no user ids in logs.
-- **Banner:** a notice at the top of every app page (not `/demo-login`): anonymous session tied to this browser, data deleted after `RETENTION_DAYS` days without a visit, don't upload confidential documents (free-tier Gemini notice from `conventions/security.md` §12). Dismissible; dismissal remembered in `localStorage` (wrapped in try/catch — renders correctly without it). Text in one place, not duplicated with T08's upload-dialog notice.
+- **Banner (first visit):** a notice at the top of the app pages (not `/demo-login`) until the visitor dismisses it: anonymous session tied to this browser, data deleted after `RETENTION_DAYS` days without a visit, don't upload confidential documents (free-tier Gemini notice from `conventions/security.md` §12). Dismissal remembered in `localStorage` (wrapped in try/catch — without storage the banner simply shows again, nothing breaks).
+- **Footer (always):** one short sentence on every app page so the information never disappears after dismissal, e.g. "Anonymous demo — your data is deleted after 30 days without a visit; please don't upload confidential documents." Banner and footer read `RETENTION_DAYS` and keep their wording in one module, not duplicated with T08's upload-dialog notice.
 - **Docs:** `user_activity` in `docs/architecture.md` §3; retention period in the README's limitations/privacy section; one line in `conventions/security.md` §12; append a `proposed` decision to `docs/decisions.md` (next free number).
 
 ## Out of scope
@@ -38,7 +39,7 @@ Data of anonymous users who stop coming back is deleted automatically after a fi
 - [ ] The cron route returns 401 without the correct bearer token and is reachable without the demo cookie
 - [ ] The cleanup's SQL function is not executable by `anon` or `authenticated`; `touch_last_seen()` is executable by `authenticated` only; `authenticated` and `anon` have no privileges on `user_activity` (pgTAP)
 - [ ] Visiting the app sets `last_seen_at`; a second visit within a day does not write again (integration test)
-- [ ] The banner is visible on first visit, shows the retention period from `RETENTION_DAYS`, stays dismissed after a reload, and has no axe violations (Playwright)
+- [ ] The banner is visible on first visit, shows the retention period from `RETENTION_DAYS`, stays dismissed after a reload; the footer sentence is visible on every app page, also after dismissal; no axe violations (Playwright)
 - [ ] First production run completes; no orphaned objects in Storage; demo notebook intact (human)
 
 ## Verification

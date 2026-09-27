@@ -29,7 +29,7 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T06](T06-hybrid-retrieval.md) | Hybrid retrieval (vector + full-text, RRF) | hand-off | P0 | T05 | 1h | 10 min | todo |
 | [T07](T07-grounded-chat.md) | Grounded chat with citations | agent+check | P0 | T06 | 2.25h | 20 min | todo |
 | [T08](T08-workspace-ui-and-demo.md) | Notebook workspace UI + demo notebook | shared | P0 | T07 | 1.75h | 45 min | todo |
-| [T08b](T08b-data-retention.md) | Data retention for inactive users + retention banner | shared | P0 | T05 | 1.5h | 15 min | todo |
+| [T08b](T08b-data-retention.md) | Data retention for inactive users + retention banner and footer notice | shared | P0 | T05 | 1.5h | 15 min | todo |
 | — | **MVP submittable** | | | | **~15.25h** | **~3.75h** | |
 | [T09](T09-notebook-guide.md) | Notebook guide | hand-off | P1 | T08 | 1.25h | 5 min | todo |
 | [T10](T10-more-source-types.md) | Text, Markdown and URL sources | hand-off | P2 | T08 | 1.75h | 5 min | todo |
