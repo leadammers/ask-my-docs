@@ -29,26 +29,37 @@ const serverShape = z.object({
   MAX_SOURCES_PER_NOTEBOOK: z.coerce.number().int().positive(),
 });
 
+type ServerValues = z.infer<typeof serverShape>;
+
 const serverSchema = serverShape
   // The mock provider answers with canned text and fake embeddings; it exists
   // for E2E/CI only and must never serve the live app (conventions/ai.md).
-  .refine((value) => !(value.AI_PROVIDER === 'mock' && value.VERCEL_ENV === 'production'), {
-    message: 'AI_PROVIDER=mock is not allowed in Vercel production',
-    path: ['AI_PROVIDER'],
-  })
   .refine(
-    (value) => value.AI_PROVIDER !== 'google' || Boolean(value.GOOGLE_GENERATIVE_AI_API_KEY),
+    (value: ServerValues): boolean =>
+      !(value.AI_PROVIDER === 'mock' && value.VERCEL_ENV === 'production'),
+    {
+      message: 'AI_PROVIDER=mock is not allowed in Vercel production',
+      path: ['AI_PROVIDER'],
+    },
+  )
+  .refine(
+    (value: ServerValues): boolean =>
+      value.AI_PROVIDER !== 'google' || Boolean(value.GOOGLE_GENERATIVE_AI_API_KEY),
     {
       message: 'GOOGLE_GENERATIVE_AI_API_KEY is required when AI_PROVIDER=google',
       path: ['GOOGLE_GENERATIVE_AI_API_KEY'],
     },
   )
-  .refine((value) => value.AI_PROVIDER !== 'ollama' || Boolean(value.OLLAMA_BASE_URL), {
-    message: 'OLLAMA_BASE_URL is required when AI_PROVIDER=ollama',
-    path: ['OLLAMA_BASE_URL'],
-  })
   .refine(
-    (value) =>
+    (value: ServerValues): boolean =>
+      value.AI_PROVIDER !== 'ollama' || Boolean(value.OLLAMA_BASE_URL),
+    {
+      message: 'OLLAMA_BASE_URL is required when AI_PROVIDER=ollama',
+      path: ['OLLAMA_BASE_URL'],
+    },
+  )
+  .refine(
+    (value: ServerValues): boolean =>
       value.AI_PROVIDER !== 'openai-compatible' || Boolean(value.OPENAI_COMPATIBLE_BASE_URL),
     {
       message: 'OPENAI_COMPATIBLE_BASE_URL is required when AI_PROVIDER=openai-compatible',
@@ -62,12 +73,15 @@ const publicShape = z.object({
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
 });
 
+type PublicValues = z.infer<typeof publicShape>;
+
 const publicSchema = publicShape
   // The site key is optional only for local dev (auth-gate.tsx skips the
   // widget when it's empty). A missing or misnamed Vercel env var must fail
   // the build, not silently ship anonymous sign-in with no CAPTCHA.
   .refine(
-    (value) => process.env.NODE_ENV !== 'production' || !!value.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    (value: PublicValues): boolean =>
+      process.env.NODE_ENV !== 'production' || !!value.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     {
       message: 'NEXT_PUBLIC_TURNSTILE_SITE_KEY is required in production',
       path: ['NEXT_PUBLIC_TURNSTILE_SITE_KEY'],

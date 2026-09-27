@@ -385,7 +385,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_ai_usage_if_allowed: {
+        Args: {
+          p_daily_cap: number
+          p_kind: string
+          p_limit: number
+          p_user_id: string
+          p_window_seconds: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
