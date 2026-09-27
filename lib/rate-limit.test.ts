@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiUsageKind } from '@/lib/config';
 import { DailyCapReachedError, RateLimitError } from '@/lib/errors';
 import {
+  assertAiAllowed,
   assertGlobalDailyCap,
   assertWithinLimit,
   startOfUtcDay,
@@ -16,10 +17,13 @@ function fakeStore(initial: Event[] = []): UsageStore & { events: Event[] } {
   return {
     events,
     async countForUser(userId, kind, since) {
-      return events.filter((e) => e.userId === userId && e.kind === kind && e.at >= since).length;
+      return events.filter(
+        (event: Event) => event.userId === userId && event.kind === kind && event.at >= since,
+      ).length;
     },
     async countAll(kinds, since) {
-      return events.filter((e) => kinds.includes(e.kind) && e.at >= since).length;
+      return events.filter((event: Event) => kinds.includes(event.kind) && event.at >= since)
+        .length;
     },
     async record(userId, kind) {
       events.push({ userId, kind, at: new Date() });
@@ -134,5 +138,35 @@ describe('assertGlobalDailyCap', () => {
       DailyCapReachedError,
     );
     await expect(assertGlobalDailyCap({ store, now }, 2)).resolves.toBeUndefined();
+  });
+});
+
+describe('assertAiAllowed', () => {
+  const now = new Date('2026-01-01T12:00:00.000Z');
+
+  it('records the use when both checks pass', async () => {
+    const store = fakeStore();
+
+    await expect(
+      assertAiAllowed('user-1', 'chat', 1, 60, { store, now, cap: 10 }),
+    ).resolves.toBeUndefined();
+    expect(store.events).toHaveLength(1);
+  });
+
+  it('throws DailyCapReachedError without recording once the cap is reached', async () => {
+    const store = fakeStore([{ userId: 'user-2', kind: 'ingest', at: now }]);
+
+    await expect(
+      assertAiAllowed('user-1', 'chat', 5, 60, { store, now, cap: 1 }),
+    ).rejects.toBeInstanceOf(DailyCapReachedError);
+    expect(store.events).toHaveLength(1);
+  });
+
+  it('throws RateLimitError when the per-user limit is reached', async () => {
+    const store = fakeStore([{ userId: 'user-1', kind: 'chat', at: now }]);
+
+    await expect(
+      assertAiAllowed('user-1', 'chat', 1, 60, { store, now, cap: 10 }),
+    ).rejects.toBeInstanceOf(RateLimitError);
   });
 });

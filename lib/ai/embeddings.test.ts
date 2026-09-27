@@ -37,10 +37,6 @@ describe('toBatches', () => {
 });
 
 // These use the mock provider end-to-end through embedDocuments/embedQuery.
-// AI_EMBEDDING_DIMENSIONS is set as the string '8' on purpose: with
-// SKIP_ENV_VALIDATION=1, lib/env.ts returns raw process.env, so every env
-// value is a string exactly as it would be misconfigured — see the bug note
-// in the final report regarding lib/ai/embeddings.ts's assertDimensions.
 describe('embedDocuments / embedQuery (mock provider)', () => {
   const context: AiCallContext = { requestId: 'req-1', userId: 'user-1' };
 

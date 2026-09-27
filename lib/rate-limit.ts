@@ -87,3 +87,19 @@ export async function assertGlobalDailyCap(
   const used = await store.countAll(AI_USAGE_KINDS, startOfUtcDay(now));
   if (used >= cap) throw new DailyCapReachedError();
 }
+
+/**
+ * The check every AI-calling route runs before the model call: the global
+ * daily cap first (so a refused call isn't recorded), then the per-user limit,
+ * which records this use.
+ */
+export async function assertAiAllowed(
+  userId: string,
+  kind: AiUsageKind,
+  limit: number,
+  windowSeconds: number,
+  { store = createUsageStore(), now = new Date(), cap }: Deps & { cap?: number } = {},
+): Promise<void> {
+  await assertGlobalDailyCap({ store, now }, cap);
+  await assertWithinLimit(userId, kind, limit, windowSeconds, { store, now });
+}

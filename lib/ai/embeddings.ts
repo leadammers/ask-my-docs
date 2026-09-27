@@ -20,8 +20,7 @@ export function toBatches<T>(items: readonly T[], size: number): T[][] {
 // The vector(n) column rejects other sizes anyway, but failing here names the
 // cause (wrong model or dimension setting) instead of a database error.
 function assertDimensions(embeddings: number[][]): number[][] {
-  // Number(): with SKIP_ENV_VALIDATION (CI build, unit tests) env values stay raw strings.
-  const expected = Number(env.AI_EMBEDDING_DIMENSIONS);
+  const expected = env.AI_EMBEDDING_DIMENSIONS;
   if (embeddings.some((embedding) => embedding.length !== expected)) {
     throw new Error(`Embedding size does not match AI_EMBEDDING_DIMENSIONS (${expected})`);
   }
@@ -79,6 +78,6 @@ export async function embedQuery(text: string, context: AiCallContext): Promise<
     outputTokens: undefined,
     durationMs: Date.now() - startedAt,
   });
-  const [embedding] = assertDimensions([result.embedding]);
-  return embedding!;
+  assertDimensions([result.embedding]);
+  return result.embedding;
 }

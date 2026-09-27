@@ -28,6 +28,9 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
  * After the last attempt it throws QuotaExceededError (user-facing message);
  * any other error is rethrown immediately. Call the AI SDK with `maxRetries: 0`
  * inside `fn` so retries don't multiply.
+ *
+ * Only errors thrown while `fn`'s promise settles are retried. `streamText`
+ * reports provider errors inside the stream, so wrapping it here retries nothing.
  */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {

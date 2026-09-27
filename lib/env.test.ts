@@ -61,7 +61,7 @@ describe('env', () => {
   });
 
   it('throws naming a missing variable when required vars are absent', async () => {
-    await expect(import('@/lib/env')).rejects.toThrow(/GOOGLE_GENERATIVE_AI_API_KEY/);
+    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_PASSWORD/);
   });
 
   it('treats a blank optional variable as unset', async () => {
@@ -79,6 +79,28 @@ describe('env', () => {
   it('does not throw when SKIP_ENV_VALIDATION=1 is set', async () => {
     process.env.SKIP_ENV_VALIDATION = '1';
     await expect(import('@/lib/env')).resolves.toBeDefined();
+  });
+
+  it('coerces numbers when SKIP_ENV_VALIDATION=1 is set', async () => {
+    process.env.SKIP_ENV_VALIDATION = '1';
+    process.env.AI_EMBEDDING_DIMENSIONS = '768';
+    const { env } = await import('@/lib/env');
+    expect(env.AI_EMBEDDING_DIMENSIONS).toBe(768);
+  });
+
+  it('does not require GOOGLE_GENERATIVE_AI_API_KEY for other providers', async () => {
+    setValidEnv();
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    process.env.AI_PROVIDER = 'ollama';
+    process.env.OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
+    await expect(import('@/lib/env')).resolves.toBeDefined();
+  });
+
+  it('rejects AI_PROVIDER=google without GOOGLE_GENERATIVE_AI_API_KEY', async () => {
+    setValidEnv();
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    process.env.AI_PROVIDER = 'google';
+    await expect(import('@/lib/env')).rejects.toThrow(/GOOGLE_GENERATIVE_AI_API_KEY/);
   });
 
   it('rejects AI_PROVIDER=mock in Vercel production', async () => {

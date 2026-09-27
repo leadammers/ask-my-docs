@@ -16,3 +16,7 @@ create index idx_usage_events_user_kind_created
 
 create index idx_usage_events_created_at
   on usage_events (created_at);
+
+-- The composite index leads with user_id, so it also serves the FK cascade
+-- from auth.users; the single-column index is redundant.
+drop index idx_usage_events_user_id;

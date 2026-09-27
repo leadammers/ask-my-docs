@@ -23,7 +23,7 @@ All AI calls in the app go through one small layer that reads provider and model
 - Unit tests: retry behaviour (mocked), rate-limit window logic (mocked DB), error mapping
 
 ## Out of scope
-Wiring the checks into routes happens in each AI task: T05 (embeddings), T07, T09, T11 call `assertWithinLimit` **and** `assertGlobalDailyCap` before any model call.
+Wiring the checks into routes happens in each AI task: T05 (embeddings), T07, T09, T11 call `assertAiAllowed` (global cap, then the per-user limit) before any model call.
 
 TTS (T11). Any route or UI.
 

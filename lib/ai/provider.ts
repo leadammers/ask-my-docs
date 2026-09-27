@@ -10,17 +10,24 @@ import { env } from '@/lib/env';
 
 export type EmbeddingTaskType = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY';
 
+// lib/env.ts enforces these per provider; the guard only narrows the type.
+function requireSetting(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`${name} is required for AI_PROVIDER=${env.AI_PROVIDER}`);
+  return value;
+}
+
 function openAiCompatible() {
   // Ollama serves an OpenAI-compatible API under /v1, so both share one adapter.
+  // `name` is also the key its providerOptions are read from.
   if (env.AI_PROVIDER === 'ollama') {
     return createOpenAICompatible({
       name: 'ollama',
-      baseURL: new URL('/v1', env.OLLAMA_BASE_URL).toString(),
+      baseURL: new URL('/v1', requireSetting(env.OLLAMA_BASE_URL, 'OLLAMA_BASE_URL')).toString(),
     });
   }
   return createOpenAICompatible({
     name: 'openai-compatible',
-    baseURL: env.OPENAI_COMPATIBLE_BASE_URL!,
+    baseURL: requireSetting(env.OPENAI_COMPATIBLE_BASE_URL, 'OPENAI_COMPATIBLE_BASE_URL'),
     apiKey: env.OPENAI_COMPATIBLE_API_KEY,
   });
 }
@@ -56,5 +63,6 @@ export function embeddingProviderOptions(taskType: EmbeddingTaskType) {
   return {
     google: { outputDimensionality: env.AI_EMBEDDING_DIMENSIONS, taskType },
     'openai-compatible': { dimensions: env.AI_EMBEDDING_DIMENSIONS },
+    ollama: { dimensions: env.AI_EMBEDDING_DIMENSIONS },
   };
 }
