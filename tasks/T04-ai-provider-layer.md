@@ -17,13 +17,12 @@ All AI calls in the app go through one small layer that reads provider and model
   - batch size configurable (default 50), sequential batches
 - `lib/ai/retry.ts`: `withRetry(fn)` — exponential backoff with jitter on HTTP 429/503, max 3 attempts; after that throws `QuotaExceededError` with a user-facing message
 - `lib/ai/usage.ts`: log `{ requestId, userId, operation, model, inputTokens, outputTokens, durationMs }` as JSON
-- `lib/rate-limit.ts`: `assertWithinLimit(userId, kind, limit, windowSeconds)` backed by `usage_events` (count in window, insert on success); throws `RateLimitError`
-- **Global daily cap:** `assertGlobalDailyCap()` counts all `usage_events` with an AI kind since midnight UTC against `AI_GLOBAL_DAILY_CAP`; throws `DailyCapReachedError` (user message: "The daily demo limit is reached — please try again tomorrow."). Counting needs the service-role client or a `security definer` count function with fixed `search_path` — justify the choice in the migration (`conventions/database.md`)
+- `lib/rate-limit.ts`: `assertAiAllowed(userId, kind, limit, windowSeconds)` — one atomic SQL function (`record_ai_usage_if_allowed`, executable by `service_role` only) takes a lock, checks the **global daily cap** (all `usage_events` since midnight UTC against `AI_GLOBAL_DAILY_CAP`) and the per-user window, and records the use only if both pass; throws `DailyCapReachedError` (user message: "The daily demo limit is reached — please try again tomorrow.") or `RateLimitError`. Justify the privileges in the migration (`conventions/database.md`)
 - `lib/errors.ts`: typed app errors → `{ status, userMessage }` mapping, used by routes
-- Unit tests: retry behaviour (mocked), rate-limit window logic (mocked DB), error mapping
+- Unit tests: retry behaviour (mocked), rate-limit decision mapping (fake store), error mapping; pgTAP for the limit logic and privileges
 
 ## Out of scope
-Wiring the checks into routes happens in each AI task: T05 (embeddings), T07, T09, T11 call `assertWithinLimit` **and** `assertGlobalDailyCap` before any model call.
+Wiring the checks into routes happens in each AI task: T05 (embeddings), T07, T09, T11 call `assertAiAllowed` (global cap, then the per-user limit) before any model call.
 
 TTS (T11). Any route or UI.
 

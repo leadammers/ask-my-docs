@@ -31,10 +31,13 @@
     "*.{json,css,md,yml,yaml}": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@ai-sdk/google": "4.0.82",
+    "@ai-sdk/openai-compatible": "3.0.57",
     "@base-ui/react": "^1.8.0",
     "@marsidev/react-turnstile": "^1.6.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "ai": "7.0.118",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.48.0",
