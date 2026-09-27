@@ -16,11 +16,13 @@ export default async function HomePage() {
     );
   }
 
-  const { data: notebooks } = await supabase
+  const { data: notebooks, error } = await supabase
     .from('notebooks')
     .select('id, title, is_demo, updated_at, sources(count)')
     .order('is_demo', { ascending: false })
     .order('updated_at', { ascending: false });
+
+  if (error) throw new Error('Failed to load notebooks');
 
   const list = notebooks ?? [];
 

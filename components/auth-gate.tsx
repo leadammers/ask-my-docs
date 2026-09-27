@@ -1,8 +1,8 @@
 'use client';
 
-import { Turnstile } from '@marsidev/react-turnstile';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -17,6 +17,7 @@ type GateState = 'checking' | 'signing-in' | 'done';
  */
 export function AuthGate() {
   const router = useRouter();
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const [state, setState] = useState<GateState>('checking');
 
   useEffect(() => {
@@ -55,17 +56,23 @@ export function AuthGate() {
     const { error } = await supabase.auth.signInAnonymously({
       options: { captchaToken: token },
     });
+    if (error) {
+      turnstileRef.current?.reset();
+      return;
+    }
     setState('done');
-    if (!error) router.refresh();
+    router.refresh();
   }
 
   if (state !== 'signing-in' || !siteKey) return null;
 
   return (
     <Turnstile
+      ref={turnstileRef}
       siteKey={siteKey}
       options={{ size: 'invisible' }}
       onSuccess={(token: string) => void handleToken(token)}
+      onError={() => turnstileRef.current?.reset()}
     />
   );
 }

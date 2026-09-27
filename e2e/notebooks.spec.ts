@@ -29,6 +29,19 @@ function notebookCard(page: Page, title: string) {
   return page.locator('[data-slot="card"]').filter({ hasText: title });
 }
 
+// Only non-demo cards render a "Notebook actions" menu, so this drains every
+// notebook the shared demo user owns without needing to know their titles.
+// Guards against a prior failed run in this serial group (e.g. a CI retry)
+// leaving notebooks behind and pushing the limit test past 5 before its loop.
+async function deleteAllNotebooks(page: Page) {
+  while (await page.getByRole('button', { name: 'Notebook actions' }).count()) {
+    await page.getByRole('button', { name: 'Notebook actions' }).first().click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
+  }
+}
+
 // The demo-login rate limit is 5 attempts per 5-minute window (shared across
 // this whole suite, since every test hits the same local server). Serial
 // order plus reusing the storageState-authenticated `page` fixture for tests
@@ -104,6 +117,8 @@ test("a second anonymous session does not see the first session's notebooks", as
 test('the 6th notebook is refused with a readable message', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
+
+  await deleteAllNotebooks(page);
 
   for (let index = 0; index < 5; index += 1) {
     await page.getByRole('button', { name: 'New notebook' }).click();
