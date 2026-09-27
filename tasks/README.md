@@ -29,7 +29,8 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T06](T06-hybrid-retrieval.md) | Hybrid retrieval (vector + full-text, RRF) | hand-off | P0 | T05 | 1h | 10 min | todo |
 | [T07](T07-grounded-chat.md) | Grounded chat with citations | agent+check | P0 | T06 | 2.25h | 20 min | todo |
 | [T08](T08-workspace-ui-and-demo.md) | Notebook workspace UI + demo notebook | shared | P0 | T07 | 1.75h | 45 min | todo |
-| — | **MVP submittable** | | | | **~13.75h** | **~3.5h** | |
+| [T08b](T08b-data-retention.md) | Data retention for inactive users + retention banner and footer notice | shared | P0 | T05 | 1.5h | 15 min | todo |
+| — | **MVP submittable** | | | | **~16h** | **~3.9h** | |
 | [T09](T09-notebook-guide.md) | Notebook guide | hand-off | P1 | T08 | 1.25h | 5 min | todo |
 | [T10](T10-more-source-types.md) | Text, Markdown and URL sources | hand-off | P2 | T08 | 1.75h | 5 min | todo |
 | [T13](T13-evaluation.md) | Evaluation | shared | P0 | T08 | 1.5h | 45 min | todo |
@@ -37,11 +38,11 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T12](T12-saved-notes.md) | Saved notes | hand-off | P3 | T08 | 1.25h | 5 min | todo |
 | [T11](T11-audio-overview.md) | Audio overview (timeboxed 3h) | shared | Stretch | T09 | 3h | 30 min | todo |
 | [T15](T15-docs-and-video.md) | README, diagram, Loom video | shared | P0 | all | 1.5h | 1.5h | todo |
-| — | **Total** | | | | **~25.25h** | **~6.8h** | |
+| — | **Total** | | | | **~27.5h** | **~7.25h** | |
 
-**By mode:** human: T00 · hand-off: T01, T02, T04, T05, T06, T09, T10, T12 · agent+check: T07, T14 · shared: T03, T08, T11, T13, T15
+**By mode:** human: T00 · hand-off: T01, T02, T04, T05, T06, T09, T10, T12 · agent+check: T07, T14 · shared: T03, T08, T08b, T11, T13, T15
 
-**Budget warning:** ~25h of agent-assisted work against a ~20h budget. E2E tests added ~2.5h of *agent* time and saved some of yours. Watch the cut line closely.
+**Budget warning:** ~27.5h of agent-assisted work against a ~20h budget. E2E tests added ~2.5h of *agent* time and saved some of yours. Watch the cut line closely.
 
 **Cut line** (from `docs/scope.md`): T13 (evaluation) and T14 (hardening) are part of the MVP and are never cut. If behind by day 4, drop T11 (audio overview) first, then T12 (saved notes), then the URL part of T10.
 
