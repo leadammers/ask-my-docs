@@ -6,8 +6,7 @@
 Data of anonymous users who stop coming back is deleted automatically after a fixed retention period — database rows **and** storage objects — and every visitor is told about it: a banner on their first visit and a short, permanent line in the footer.
 
 ## Your part
-- Confirm the retention period (default: **30 days** without a visit). The banner, the README and the cleanup job all read it from one constant.
-- Generate `CRON_SECRET` (`openssl rand -hex 32`) and set it in Vercel (Production). Vercel sends it to the cron route automatically.
+- Generate `CRON_SECRET` and set it in Vercel (Production). Vercel sends it to the cron route automatically.
 - After the first production run: check Vercel's cron log and the Storage buckets — no objects left under deleted users' folders, demo notebook untouched.
 
 ## Context
