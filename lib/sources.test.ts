@@ -77,17 +77,21 @@ describe('isRetryable', () => {
   const now = new Date('2026-01-01T12:00:00.000Z');
 
   it('retries failed sources', () => {
-    expect(isRetryable('failed', now, now)).toBe(true);
+    expect(isRetryable('failed', now, now, now)).toBe(true);
   });
 
   it('retries pending sources only after two minutes', () => {
-    expect(isRetryable('pending', new Date('2026-01-01T11:59:00.000Z'), now)).toBe(false);
-    expect(isRetryable('pending', new Date('2026-01-01T11:57:00.000Z'), now)).toBe(true);
+    expect(isRetryable('pending', new Date('2026-01-01T11:59:00.000Z'), now, now)).toBe(false);
+    expect(isRetryable('pending', new Date('2026-01-01T11:57:00.000Z'), now, now)).toBe(true);
   });
 
-  it('never retries ready or processing sources', () => {
-    expect(isRetryable('ready', new Date(0), now)).toBe(false);
-    expect(isRetryable('processing', new Date(0), now)).toBe(false);
+  it('never retries ready sources', () => {
+    expect(isRetryable('ready', new Date(0), new Date(0), now)).toBe(false);
+  });
+
+  it('retries processing sources only once stuck', () => {
+    expect(isRetryable('processing', now, new Date('2026-01-01T11:59:00.000Z'), now)).toBe(false);
+    expect(isRetryable('processing', now, new Date('2026-01-01T11:53:00.000Z'), now)).toBe(true);
   });
 });
 

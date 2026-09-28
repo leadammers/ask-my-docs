@@ -4,7 +4,13 @@ import { AppError, toErrorResponse, userMessage, type ErrorCode } from '@/lib/er
 import { extractPdfPages } from '@/lib/ingest/adapters/pdf';
 import { runIngest, type Extractor } from '@/lib/ingest/pipeline';
 import { assertAiAllowed } from '@/lib/rate-limit';
-import { CLAIMABLE_STATUSES, maxUploadBytes, sourceIdSchema } from '@/lib/sources';
+import {
+  CLAIMABLE_STATUSES,
+  isStuckProcessing,
+  maxUploadBytes,
+  sourceIdSchema,
+  STUCK_PROCESSING_MS,
+} from '@/lib/sources';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { findOwnedSource } from '@/lib/supabase/ownership';
 import { createClient } from '@/lib/supabase/server';
@@ -39,15 +45,22 @@ export async function POST(
   const source = await findOwnedSource(supabase, parsedId.data, user.id);
   if (!source || source.kind !== 'pdf' || !source.storagePath) return errorResponse('not_found');
   const storagePath = source.storagePath;
-  if (!isClaimable(source.status)) return errorResponse('already_processing');
+  const now = new Date();
+  if (!isClaimable(source.status, new Date(source.updatedAt), now)) {
+    return errorResponse('already_processing');
+  }
 
   // Conditional update = atomic claim: of two parallel calls, only one gets the row.
-  // Claimed before the rate limit, so a losing parallel call spends no quota.
+  // Claimed before the rate limit, so a losing parallel call spends no quota. A
+  // stuck 'processing' row (its own release update failed) is reclaimable too,
+  // once past STUCK_PROCESSING_MS — see lib/sources.ts.
   const { data: claimed, error: claimError } = await supabase
     .from('sources')
     .update({ status: 'processing', progress: null, error: null })
     .eq('id', source.id)
-    .in('status', CLAIMABLE_STATUSES)
+    .or(
+      `status.in.(${CLAIMABLE_STATUSES.join(',')}),and(status.eq.processing,updated_at.lt.${new Date(now.getTime() - STUCK_PROCESSING_MS).toISOString()})`,
+    )
     .select('id')
     .maybeSingle();
   if (claimError) return errorResponse('unexpected');
@@ -109,8 +122,9 @@ function pdfExtractor(supabase: AdminClient, storagePath: string): Extractor {
   };
 }
 
-function isClaimable(status: string): boolean {
-  return (CLAIMABLE_STATUSES as readonly string[]).includes(status);
+function isClaimable(status: string, updatedAt: Date, now: Date): boolean {
+  if ((CLAIMABLE_STATUSES as readonly string[]).includes(status)) return true;
+  return status === 'processing' && isStuckProcessing(updatedAt, now);
 }
 
 function errorResponse(code: ErrorCode): Response {

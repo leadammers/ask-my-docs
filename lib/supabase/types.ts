@@ -316,6 +316,7 @@ export type Database = {
           status: string
           storage_path: string | null
           title: string
+          updated_at: string
           url: string | null
           user_id: string
         }
@@ -331,6 +332,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           title: string
+          updated_at?: string
           url?: string | null
           user_id?: string
         }
@@ -346,6 +348,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           title?: string
+          updated_at?: string
           url?: string | null
           user_id?: string
         }

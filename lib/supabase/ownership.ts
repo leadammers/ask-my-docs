@@ -29,6 +29,7 @@ export type OwnedSource = {
   kind: string;
   status: SourceStatus;
   storagePath: string | null;
+  updatedAt: string;
 };
 
 export async function findOwnedSource(
@@ -38,7 +39,7 @@ export async function findOwnedSource(
 ): Promise<OwnedSource | null> {
   const { data } = await supabase
     .from('sources')
-    .select('id, user_id, notebook_id, kind, status, storage_path')
+    .select('id, user_id, notebook_id, kind, status, storage_path, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (!data || data.user_id !== userId) return null;
@@ -48,5 +49,6 @@ export async function findOwnedSource(
     kind: data.kind,
     status: data.status as SourceStatus,
     storagePath: data.storage_path,
+    updatedAt: data.updated_at,
   };
 }

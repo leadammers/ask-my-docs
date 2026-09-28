@@ -25,6 +25,7 @@ export type SourceListItem = {
   error: string | null;
   pageCount: number | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 const POLL_INTERVAL_MS = 2000;
@@ -105,7 +106,9 @@ export function SourceList({ sources, canEdit }: SourceListProps) {
       <ul aria-label="Sources" className="flex flex-col gap-2">
         {sources.map((source: SourceListItem) => {
           const progressLine = describeProgress(source.status, source.progress);
-          const canRetry = canEdit && isRetryable(source.status, new Date(source.createdAt), now);
+          const canRetry =
+            canEdit &&
+            isRetryable(source.status, new Date(source.createdAt), new Date(source.updatedAt), now);
 
           return (
             <li

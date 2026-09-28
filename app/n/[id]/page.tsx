@@ -9,7 +9,7 @@ import type { Tables } from '@/lib/supabase/types';
 
 type SourceRow = Pick<
   Tables<'sources'>,
-  'id' | 'title' | 'status' | 'progress' | 'error' | 'page_count' | 'created_at'
+  'id' | 'title' | 'status' | 'progress' | 'error' | 'page_count' | 'created_at' | 'updated_at'
 >;
 
 export default async function NotebookPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +32,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
 
   const { data: sources, error: sourcesError } = await supabase
     .from('sources')
-    .select('id, title, status, progress, error, page_count, created_at')
+    .select('id, title, status, progress, error, page_count, created_at, updated_at')
     .eq('notebook_id', notebook.id)
     .order('created_at', { ascending: true });
 
@@ -59,6 +59,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
     error: source.error,
     pageCount: source.page_count,
     createdAt: source.created_at,
+    updatedAt: source.updated_at,
   }));
 
   return (
