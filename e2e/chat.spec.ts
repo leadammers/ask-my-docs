@@ -101,6 +101,26 @@ test('an unrelated question gets the fixed fallback without calling the model', 
   await expect(page.getByLabel(/^Citation/)).toHaveCount(0);
 });
 
+test('a typing indicator covers the wait before the first answer token', async ({ browser }) => {
+  const page = await freshUser(browser);
+  await createNotebook(page, 'Typing indicator notebook');
+  await addReadySource(page, 'sample.pdf', 'sample');
+
+  // Hold the request open so the pending window is observable; the mock stream
+  // otherwise finishes before the assertion can run.
+  await page.route('**/api/chat', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+
+  await ask(page, SAMPLE_QUESTION);
+
+  const indicator = page.getByRole('status', { name: 'Assistant is thinking' });
+  await expect(indicator).toBeVisible();
+  await expect(page.getByText('According to your sources, this is a mock answer')).toBeVisible();
+  await expect(indicator).toHaveCount(0);
+});
+
 test('chat history and citations survive a page reload', async ({ browser }) => {
   const page = await freshUser(browser);
   await createNotebook(page, 'History notebook');

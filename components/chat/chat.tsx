@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { clearChat } from '@/app/n/[id]/chat-actions';
 import { MessageMarkdown } from '@/components/chat/message-markdown';
+import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,6 +54,15 @@ export function Chat({ notebookId, sourceIds, initialMessages }: ChatProps): Rea
   const isBusy = status === 'submitted' || status === 'streaming';
   const isDisabled = isBusy || !hasSources;
 
+  const lastMessage = messages[messages.length - 1];
+  // `submitted` covers retrieval and time to the first token; an assistant draft
+  // with no text yet covers answers whose citations arrive before the prose.
+  const hasAnswerText = lastMessage?.role === 'assistant' && textOf(lastMessage).length > 0;
+  const isAwaitingAnswer = isBusy && !hasAnswerText;
+  // That textless draft would render as a blank bubble — the indicator replaces it.
+  const renderedMessages =
+    isAwaitingAnswer && lastMessage?.role === 'assistant' ? messages.slice(0, -1) : messages;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const text = question.trim();
@@ -98,7 +108,7 @@ export function Chat({ notebookId, sourceIds, initialMessages }: ChatProps): Rea
                 : 'Add a source and wait for it to finish processing to start chatting.'}
             </p>
           ) : null}
-          {messages.map((message) => (
+          {renderedMessages.map((message) => (
             <div key={message.id} className={message.role === 'user' ? 'text-right' : 'text-left'}>
               <div
                 className={
@@ -115,6 +125,11 @@ export function Chat({ notebookId, sourceIds, initialMessages }: ChatProps): Rea
               </div>
             </div>
           ))}
+          {isAwaitingAnswer ? (
+            <div className="text-left">
+              <TypingIndicator />
+            </div>
+          ) : null}
         </div>
       </ScrollArea>
       <form onSubmit={handleSubmit} className="flex gap-2">
