@@ -9,6 +9,7 @@ The deployed app survives a skeptical reviewer: no broken states, clear limits, 
 Lighthouse in Chrome DevTools on the production notebook page; a final skeptical click-through in an incognito window.
 
 ## Scope
+- Follow-up from T05: `lib/ingest/pipeline.ts` embeds every chunk of a source with no upper bound (PDFs are capped at 300 pages, but a dense 300-page PDF can still mean hundreds of chunks). Decide and add a per-source chunk/char cap so one large upload can't burn a large share of the free-tier embedding quota; fail with a readable error code above it.
 - Run the review checklist from `conventions/security.md` over every server action, route handler and SQL function — produce the filled-in table in the commit description
 - Check that no service-role usage is reachable from user input without an ownership check
 - Security headers in `next.config` (CSP allowing Supabase, Turnstile (`challenges.cloudflare.com` for script and frame) and self, `img-src 'self' data: blob:`, `media-src` and `connect-src` including the Supabase URL (audio playback, direct uploads) — build the Supabase origin from env so local and production both work, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`)

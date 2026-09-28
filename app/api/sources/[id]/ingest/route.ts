@@ -89,9 +89,21 @@ export async function POST(
 
 function pdfExtractor(supabase: AdminClient, storagePath: string): Extractor {
   return async () => {
+    // The size in createSourceUpload was a client claim; this is the real one,
+    // checked from metadata so an oversized object is never downloaded.
+    const { data: info, error: infoError } = await supabase.storage
+      .from('sources')
+      .info(storagePath);
+    if (infoError) throw new Error('Could not read the uploaded file', { cause: infoError });
+    // info.size is undefined only if the provider can't report it; fail closed rather
+    // than skip the check, since that case would otherwise let anything through.
+    if ((info.size ?? Infinity) > maxUploadBytes(env.MAX_UPLOAD_MB)) {
+      throw new AppError('file_too_large');
+    }
+
     const { data: file, error } = await supabase.storage.from('sources').download(storagePath);
     if (error) throw new Error('Could not read the uploaded file', { cause: error });
-    // The size in createSourceUpload was a client claim; this is the real one.
+    // Re-checked on the downloaded blob too, in case metadata ever disagrees with the body.
     if (file.size > maxUploadBytes(env.MAX_UPLOAD_MB)) throw new AppError('file_too_large');
     return extractPdfPages(new Uint8Array(await file.arrayBuffer()));
   };
