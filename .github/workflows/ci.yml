@@ -129,6 +129,15 @@ jobs:
           DEMO_PASSWORD: ci-e2e-demo-password
           DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
           AI_PROVIDER: mock
+          # SKIP_ENV_VALIDATION leaves unset vars undefined; ingest (T05)
+          # reads these limits and the embedding settings at request time.
+          AI_CHAT_MODEL: mock-chat
+          AI_EMBEDDING_MODEL: mock-embedding
+          AI_EMBEDDING_DIMENSIONS: 768
+          AI_GLOBAL_DAILY_CAP: 500
+          RATE_LIMIT_INGEST_PER_HOUR: 20
+          MAX_UPLOAD_MB: 10
+          MAX_SOURCES_PER_NOTEBOOK: 10
         run: pnpm test:e2e
 
       - name: Upload Playwright report

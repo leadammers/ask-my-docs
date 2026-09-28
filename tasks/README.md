@@ -25,7 +25,7 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T02b](T02b-demo-password-gate.md) | Demo password gate (signed cookie in front of the app) | shared | P0 | T02 | 0.75h | 10 min | done |
 | [T03](T03-auth-notebooks-deploy.md) | Anonymous auth + CAPTCHA, notebooks CRUD, first deploy | shared | P0 | T02b | 1.75h | 30 min | done |
 | [T04](T04-ai-provider-layer.md) | AI provider layer, rate limits, global cap | hand-off | P0 | T01, T02 | 0.75h | 10 min | review |
-| [T05](T05-pdf-ingestion.md) | PDF upload and ingestion pipeline | hand-off | P0 | T03, T04 | 2.25h | 5 min | todo |
+| [T05](T05-pdf-ingestion.md) | PDF upload and ingestion pipeline | hand-off | P0 | T03, T04 | 2.25h | 5 min | review |
 | [T06](T06-hybrid-retrieval.md) | Hybrid retrieval (vector + full-text, RRF) | hand-off | P0 | T05 | 1h | 10 min | todo |
 | [T07](T07-grounded-chat.md) | Grounded chat with citations | agent+check | P0 | T06 | 2.25h | 20 min | todo |
 | [T08](T08-workspace-ui-and-demo.md) | Notebook workspace UI + demo notebook | shared | P0 | T07 | 1.75h | 45 min | todo |

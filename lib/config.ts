@@ -12,3 +12,12 @@ export type AiUsageKind = (typeof AI_USAGE_KINDS)[number];
 
 export const AI_RETRY_ATTEMPTS = 3;
 export const AI_RETRY_BASE_DELAY_MS = 500;
+
+// Ingestion (docs/architecture.md §4.1). Tokens are estimated as chars / 4.
+export const CHUNK_TARGET_TOKENS = 800;
+export const CHUNK_OVERLAP_TOKENS = 120;
+export const CHUNK_MIN_CHARS = 50;
+export const MIN_EXTRACTED_CHARS = 200;
+export const MAX_PDF_PAGES = 300;
+export const CHUNK_INSERT_BATCH_SIZE = 100;
+export const SOURCE_TITLE_MAX_LENGTH = 200;
