@@ -26,6 +26,6 @@ export function reciprocalRankFusion<Id>(
 export function rankByScoreDescending(scores: number[]): RankedItem<number>[] {
   return scores
     .map((score, index): { index: number; score: number } => ({ index, score }))
-    .sort((a, b) => b.score - a.score)
+    .sort((a: { score: number }, b: { score: number }): number => b.score - a.score)
     .map(({ index }, position): RankedItem<number> => ({ id: index, rank: position + 1 }));
 }
