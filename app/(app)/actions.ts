@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { ErrorCode } from '@/lib/errors';
 import { canCreateNotebook, notebookIdSchema, notebookTitleSchema } from '@/lib/notebooks';
 import { fail, ok, type Result } from '@/lib/result';
+import { findOwnedNotebook } from '@/lib/supabase/ownership';
 import { createClient } from '@/lib/supabase/server';
 
 export async function createNotebook(title: string): Promise<Result<{ id: string }, ErrorCode>> {
@@ -74,28 +75,25 @@ export async function deleteNotebook(id: string): Promise<Result<null, ErrorCode
   const notebook = await findOwnedNotebook(supabase, parsedId.data, user.id);
   if (!notebook) return fail('not_found');
 
+  // Storage objects first: the row cascade doesn't reach Storage (security.md §5).
+  const { data: sources, error: sourcesError } = await supabase
+    .from('sources')
+    .select('storage_path')
+    .eq('notebook_id', parsedId.data)
+    .not('storage_path', 'is', null);
+  if (sourcesError) return fail('unexpected');
+  const paths: string[] = [];
+  for (const source of sources) {
+    if (source.storage_path) paths.push(source.storage_path);
+  }
+  if (paths.length > 0) {
+    const { error: storageError } = await supabase.storage.from('sources').remove(paths);
+    if (storageError) return fail('unexpected');
+  }
+
   const { error } = await supabase.from('notebooks').delete().eq('id', parsedId.data);
   if (error) return fail('unexpected');
 
   revalidatePath('/');
   return ok(null);
-}
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-
-// Loaded through the user-scoped client, then checked explicitly: RLS lets
-// any authenticated user *select* the demo notebook (read access is shared),
-// so a user_id match here is what actually proves ownership before a write.
-async function findOwnedNotebook(
-  supabase: SupabaseServerClient,
-  id: string,
-  userId: string,
-): Promise<{ id: string } | null> {
-  const { data } = await supabase
-    .from('notebooks')
-    .select('id, user_id')
-    .eq('id', id)
-    .maybeSingle();
-  if (!data || data.user_id !== userId) return null;
-  return { id: data.id };
 }

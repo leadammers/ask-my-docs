@@ -28,6 +28,9 @@ Data of anonymous users who stop coming back is deleted automatically after a fi
 - **Footer (always):** one short sentence on every app page so the information never disappears after dismissal, e.g. "Anonymous demo — your data is deleted after 30 days without a visit; please don't upload confidential documents." Banner and footer read `RETENTION_DAYS` and keep their wording in one module, not duplicated with T08's upload-dialog notice.
 - **Docs:** `user_activity` in `docs/architecture.md` §3; retention period in the README's limitations/privacy section; one line in `conventions/security.md` §12; append a `proposed` decision to `docs/decisions.md` (next free number).
 
+## Follow-up from T05
+Direct signed-upload URLs let a user write objects into `{userId}/` in the `sources` bucket without a matching `sources` row (T02's storage insert/update policies allow any authenticated write under their own prefix, and a source row can be deleted or fail to be created after the URL was issued). This cleanup already lists and removes everything under `{userId}/`, so those orphans are removed too as a side effect — no extra work needed here, just noting it so the "objects removed" count isn't a surprise.
+
 ## Out of scope
 - Deleting individual stale notebooks of active users
 - A "delete my data now" button (users can already delete notebooks)
