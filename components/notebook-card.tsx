@@ -2,6 +2,7 @@
 
 import { MoreVerticalIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteNotebook, renameNotebook } from '@/app/(app)/actions';
@@ -33,10 +34,19 @@ type NotebookCardProps = {
 };
 
 export function NotebookCard({ id, title, isDemo, updatedAt, sourceCount }: NotebookCardProps) {
+  const router = useRouter();
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
   const [isPending, startTransition] = useTransition();
+
+  function handleCardClick(): void {
+    router.push(`/n/${id}`);
+  }
+
+  function stopPropagation(event: React.MouseEvent<HTMLElement>): void {
+    event.stopPropagation();
+  }
 
   function handleRename(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,10 +73,10 @@ export function NotebookCard({ id, title, isDemo, updatedAt, sourceCount }: Note
 
   return (
     <>
-      <Card>
+      <Card onClick={handleCardClick} className="cursor-pointer">
         <CardHeader className="flex flex-row items-start justify-between gap-2">
           <CardTitle className="line-clamp-2">
-            <Link href={`/n/${id}`} className="hover:underline">
+            <Link href={`/n/${id}`} className="hover:underline" onClick={stopPropagation}>
               {title}
             </Link>
           </CardTitle>
@@ -75,7 +85,14 @@ export function NotebookCard({ id, title, isDemo, updatedAt, sourceCount }: Note
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon" aria-label="Notebook actions" />}
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Notebook actions"
+                    onClick={stopPropagation}
+                  />
+                }
               >
                 <MoreVerticalIcon />
               </DropdownMenuTrigger>
