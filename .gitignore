@@ -39,6 +39,7 @@ Thumbs.db
 # agent scratch (smoke tests, debug scripts, cycle log)
 .smoke-*.mjs
 .debug-*.mjs
+.superpowers/
 agent-log.md
 
 # playwright auth state (holds a valid demo-gate cookie)

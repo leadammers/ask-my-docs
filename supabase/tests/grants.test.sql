@@ -22,7 +22,7 @@ select table_privs_are('public', 'chunks', 'authenticated', array['SELECT', 'INS
 select table_privs_are('public', 'chunks', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on chunks');
 
 select table_privs_are('public', 'messages', 'anon', array[]::text[], 'anon has no privileges on messages');
-select table_privs_are('public', 'messages', 'authenticated', array['SELECT', 'INSERT'], 'authenticated can select and insert messages, not update or delete');
+select table_privs_are('public', 'messages', 'authenticated', array['SELECT', 'INSERT', 'DELETE'], 'authenticated can select, insert and delete messages, not update');
 select table_privs_are('public', 'messages', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on messages');
 
 select table_privs_are('public', 'notes', 'anon', array[]::text[], 'anon has no privileges on notes');
