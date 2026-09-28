@@ -1,9 +1,12 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Chat } from '@/components/chat/chat';
 import { SourceList, type SourceListItem } from '@/components/source-list';
 import { SourceUpload } from '@/components/source-upload';
 import { Button } from '@/components/ui/button';
+import type { Citation } from '@/lib/chat/citations';
+import { CHAT_MAX_SOURCE_IDS } from '@/lib/config';
 import { env } from '@/lib/env';
 import { notebookIdSchema } from '@/lib/notebooks';
 import type { SourceStatus } from '@/lib/sources';
@@ -14,6 +17,29 @@ type SourceRow = Pick<
   Tables<'sources'>,
   'id' | 'title' | 'status' | 'progress' | 'error' | 'page_count' | 'created_at' | 'updated_at'
 >;
+
+type MessageRow = Pick<Tables<'messages'>, 'id' | 'role' | 'content' | 'citations'>;
+
+type InitialChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  parts: ({ type: 'text'; text: string } | { type: 'data-citations'; data: Citation[] })[];
+};
+
+function toInitialMessage(row: MessageRow): InitialChatMessage {
+  const citations = (row.citations as Citation[] | null) ?? [];
+  return {
+    id: row.id,
+    role: row.role === 'assistant' ? 'assistant' : 'user',
+    parts:
+      row.role === 'assistant'
+        ? [
+            { type: 'data-citations', data: citations },
+            { type: 'text', text: row.content },
+          ]
+        : [{ type: 'text', text: row.content }],
+  };
+}
 
 export default async function NotebookPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,6 +78,25 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
     throw new Error('Failed to load sources');
   }
 
+  const { data: messageRows, error: messagesError } = await supabase
+    .from('messages')
+    .select('id, role, content, citations')
+    .eq('notebook_id', notebook.id)
+    .order('created_at', { ascending: true });
+
+  if (messagesError) {
+    console.error(
+      JSON.stringify({
+        operation: 'messages.list',
+        userId: user.id,
+        notebookId: notebook.id,
+        code: messagesError.code,
+        message: messagesError.message,
+      }),
+    );
+    throw new Error('Failed to load chat history');
+  }
+
   // Only the owner can change the sources; a demo notebook is read-only for everyone.
   const canEdit = notebook.user_id === user.id && !notebook.is_demo;
   const sourceItems: SourceListItem[] = (sources ?? []).map((source: SourceRow) => ({
@@ -64,6 +109,11 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
     createdAt: source.created_at,
     updatedAt: source.updated_at,
   }));
+  const readySourceIds = (sources ?? [])
+    .filter((source: SourceRow) => source.status === 'ready')
+    .map((source: SourceRow) => source.id)
+    .slice(0, CHAT_MAX_SOURCE_IDS);
+  const initialMessages = (messageRows ?? []).map((row) => toInitialMessage(row as MessageRow));
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
@@ -83,6 +133,16 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
         </h2>
         {canEdit ? <SourceUpload notebookId={notebook.id} maxUploadMb={env.MAX_UPLOAD_MB} /> : null}
         <SourceList sources={sourceItems} canEdit={canEdit} />
+      </section>
+      <section aria-labelledby="chat-heading" className="flex flex-col gap-4">
+        <h2 id="chat-heading" className="sr-only">
+          Chat
+        </h2>
+        <Chat
+          notebookId={notebook.id}
+          sourceIds={readySourceIds}
+          initialMessages={initialMessages}
+        />
       </section>
     </main>
   );

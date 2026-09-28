@@ -1,6 +1,6 @@
 -- T02: RLS tests (conventions/database.md, docs/architecture.md §3)
 begin;
-select plan(30);
+select plan(32);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, RLS does not apply to the table owner)
@@ -50,6 +50,10 @@ insert into notebook_guides (notebook_id, user_id, summary) values
 insert into audio_overviews (id, notebook_id, user_id, status) values
   ('a4000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'ready'),
   ('d4000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'ready');
+
+-- the demo owner's own message in the demo notebook: for the delete-ownership check
+insert into messages (id, notebook_id, user_id, role, content) values
+  ('d5000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'user', 'demo owner message');
 
 -- ---------------------------------------------------------------------------
 -- As user A
@@ -156,12 +160,14 @@ delete from sources where id = 'd1000000-0000-0000-0000-000000000001';
 delete from notes where id = 'd3000000-0000-0000-0000-000000000001';
 delete from notebook_guides where notebook_id = 'd0000000-0000-0000-0000-000000000001';
 delete from audio_overviews where id = 'd4000000-0000-0000-0000-000000000001';
+delete from messages where id = 'd5000000-0000-0000-0000-000000000001';
 
 delete from chunks where id = 'a2000000-0000-0000-0000-000000000001';
 delete from sources where id = 'a1000000-0000-0000-0000-000000000001';
 delete from notes where id = 'a3000000-0000-0000-0000-000000000001';
 delete from notebook_guides where notebook_id = 'a0000000-0000-0000-0000-000000000001';
 delete from audio_overviews where id = 'a4000000-0000-0000-0000-000000000001';
+delete from messages where notebook_id = 'd0000000-0000-0000-0000-000000000001' and user_id = '11111111-1111-1111-1111-111111111111';
 
 -- ---------------------------------------------------------------------------
 -- Back to postgres: prove B's rows survived A's update/delete attempts, A's
@@ -227,6 +233,18 @@ select is(
   (select count(*)::int from audio_overviews where id = 'd4000000-0000-0000-0000-000000000001'),
   1,
   'demo audio overview cannot be deleted'
+);
+
+select is(
+  (select count(*)::int from messages where notebook_id = 'd0000000-0000-0000-0000-000000000001' and user_id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'A can delete its own message'
+);
+
+select is(
+  (select count(*)::int from messages where id = 'd5000000-0000-0000-0000-000000000001'),
+  1,
+  'demo owner''s message cannot be deleted by another user'
 );
 
 select is(

@@ -60,6 +60,32 @@ const SCANNED_PAGES: FixturePage[] = [
   },
 ];
 
+/**
+ * Content carries the mock provider's leak-answer trigger (lib/ai/mock.ts,
+ * MOCK_LEAK_TRIGGER) so e2e/chat.spec.ts can ask this exact chunk text and
+ * get a deterministic answer containing an injected markdown image, without
+ * a real model reproducing an attacker-controlled source.
+ */
+const LEAK_PAGES: FixturePage[] = [
+  {
+    lines: [
+      'BT /F1 12 Tf 14 TL 72 720 Td',
+      '(Leak Test Source) Tj',
+      'T*',
+      '(This document exists only to test citation rendering safety) Tj',
+      'T*',
+      '(The mock-leak-test marker appears here to trigger a scripted) Tj',
+      'T*',
+      '(reply that tries to leak data through a markdown image link) Tj',
+      'T*',
+      '(The client must never render that image or fetch its target) Tj',
+      'T*',
+      '(A final line keeps this page above the minimum length here) Tj',
+      'ET',
+    ],
+  },
+];
+
 /** Pads a line with spaces to LINE_WIDTH bytes, the newline included. */
 function line(text: string): string {
   if (text.length >= LINE_WIDTH) {
@@ -143,6 +169,7 @@ function main(): void {
   const fixtures = [
     { name: 'sample.pdf', pages: SAMPLE_PAGES },
     { name: 'scanned.pdf', pages: SCANNED_PAGES },
+    { name: 'leak.pdf', pages: LEAK_PAGES },
   ];
   for (const fixture of fixtures) {
     const pdf = buildPdf(fixture.pages);

@@ -13,6 +13,10 @@ export type AiUsageKind = (typeof AI_USAGE_KINDS)[number];
 export const AI_RETRY_ATTEMPTS = 3;
 export const AI_RETRY_BASE_DELAY_MS = 500;
 
+export const CHAT_MAX_OUTPUT_TOKENS = 1024;
+export const CHAT_QUESTION_MAX_CHARS = 4000;
+export const CHAT_MAX_SOURCE_IDS = 10;
+
 // Ingestion (docs/architecture.md §4.1). Tokens are estimated as chars / 4.
 export const CHUNK_TARGET_TOKENS = 800;
 export const CHUNK_OVERLAP_TOKENS = 120;
