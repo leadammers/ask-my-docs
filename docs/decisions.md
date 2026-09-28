@@ -151,3 +151,11 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Why:** `next-themes@0.4.6` was already a direct dependency and `components/ui/sonner.tsx` already called `useTheme()` — with no provider mounted, so that call returned `undefined` and the toaster could never follow the theme. Mounting the provider wires up the feature and fixes that latent bug in one change, with nothing new to install. The `.dark` palette already existed in `globals.css`, so the work was a toggle and an audit across both themes, not a second design.
 **Rejected:** a hand-rolled class toggle plus pre-hydration script (re-implements the library, and gets the flash wrong); `prefers-color-scheme` alone with no toggle (no user choice); defaulting to a fixed light or dark (wrong for somebody on first paint either way).
 **Consequence:** Both themes are part of the axe and visual checks from here on, and `sonner.tsx`'s theme now tracks the toggle. `color-scheme` is declared per theme in `globals.css` so native controls (scrollbars, the composer) match.
+
+## D-20 — Retention via `last_seen_at` and a daily Vercel Cron
+**Date:** 2026-09-28 · **Status:** proposed
+
+**Decision:** Activity is tracked in `user_activity.last_seen_at`, touched at most once a day from `proxy.ts` (cookie-throttled `touch_last_seen` rpc). A daily Vercel Cron calls `/api/cron/retention` (bearer `CRON_SECRET`), which deletes anonymous users inactive for 30 days in batches of 100: storage objects first, then the auth user; rows cascade. A failed storage cleanup skips the user until the next run.
+**Why:** `auth.sessions` / `last_sign_in_at` don't reflect visits with a refreshed session; one own column is explicit and testable.
+**Rejected:** pg_cron (can't delete Storage objects); deleting the user first (orphaned files).
+**Consequence:** Needs `CRON_SECRET` in Vercel Production; cron only runs in production.

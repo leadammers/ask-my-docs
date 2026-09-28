@@ -108,6 +108,7 @@ audio_overviews  (id, notebook_id, user_id, status, progress jsonb, script jsonb
                   duration_seconds, error, source_fingerprint, created_at)
 
 usage_events     (id, user_id, kind, created_at)            -- for rate limiting
+user_activity    (user_id, last_seen_at)                    -- retention (T08b); written once a day
 ```
 
 Full-text search uses the `simple` configuration so German and English documents both work without language detection.
