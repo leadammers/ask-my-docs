@@ -5,13 +5,14 @@ import { Chat } from '@/components/chat/chat';
 import { SourceList, type SourceListItem } from '@/components/source-list';
 import { SourceUpload } from '@/components/source-upload';
 import { Button } from '@/components/ui/button';
-import type { Citation } from '@/lib/chat/citations';
+import { citationSchema, type Citation } from '@/lib/chat/citations';
 import { CHAT_MAX_SOURCE_IDS } from '@/lib/config';
 import { env } from '@/lib/env';
 import { notebookIdSchema } from '@/lib/notebooks';
 import type { SourceStatus } from '@/lib/sources';
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/types';
+import { z } from 'zod';
 
 type SourceRow = Pick<
   Tables<'sources'>,
@@ -27,7 +28,8 @@ type InitialChatMessage = {
 };
 
 function toInitialMessage(row: MessageRow): InitialChatMessage {
-  const citations = (row.citations as Citation[] | null) ?? [];
+  const parsed = z.array(citationSchema).safeParse(row.citations ?? []);
+  const citations: Citation[] = parsed.success ? parsed.data : [];
   return {
     id: row.id,
     role: row.role === 'assistant' ? 'assistant' : 'user',

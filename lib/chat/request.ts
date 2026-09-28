@@ -1,21 +1,27 @@
 import { z } from 'zod';
-import { CHAT_MAX_SOURCE_IDS } from '@/lib/config';
+import { CHAT_MAX_SOURCE_IDS, CHAT_QUESTION_MAX_CHARS } from '@/lib/config';
 import { notebookIdSchema } from '@/lib/notebooks';
 import { sourceIdSchema } from '@/lib/sources';
 
-const uiMessagePartSchema = z.looseObject({ type: z.string(), text: z.string().optional() });
+const uiMessagePartSchema = z.looseObject({
+  type: z.string().max(64),
+  text: z
+    .string()
+    .max(CHAT_QUESTION_MAX_CHARS * 4)
+    .optional(),
+});
 
 const uiMessageSchema = z.object({
-  id: z.string(),
+  id: z.string().max(128),
   role: z.enum(['user', 'assistant', 'system']),
-  parts: z.array(uiMessagePartSchema),
+  parts: z.array(uiMessagePartSchema).max(20),
 });
 export type UiMessage = z.infer<typeof uiMessageSchema>;
 
 export const chatRequestSchema = z.object({
   notebookId: notebookIdSchema,
   sourceIds: z.array(sourceIdSchema).min(1).max(CHAT_MAX_SOURCE_IDS),
-  messages: z.array(uiMessageSchema).min(1),
+  messages: z.array(uiMessageSchema).min(1).max(100),
 });
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 

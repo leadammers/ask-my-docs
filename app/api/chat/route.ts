@@ -84,11 +84,21 @@ export async function POST(request: Request): Promise<Response> {
   );
 
   const requestId = crypto.randomUUID();
-  const { chunks, hasRelevantContext } = await retrieve(
-    supabase,
-    { notebookId: notebook.id, sourceIds, question },
-    { requestId, userId: user.id },
-  );
+  let retrieved: Awaited<ReturnType<typeof retrieve>>;
+  try {
+    retrieved = await retrieve(
+      supabase,
+      { notebookId: notebook.id, sourceIds, question },
+      { requestId, userId: user.id },
+    );
+  } catch (error: unknown) {
+    const response = toErrorResponse(error);
+    return Response.json(
+      { error: { code: response.code, message: response.userMessage } },
+      { status: response.status },
+    );
+  }
+  const { chunks, hasRelevantContext } = retrieved;
 
   const { error: userInsertError } = await supabase.from('messages').insert({
     notebook_id: notebook.id,

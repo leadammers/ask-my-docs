@@ -44,6 +44,9 @@ export function Chat({ notebookId, sourceIds, initialMessages }: ChatProps): Rea
       api: '/api/chat',
       body: { notebookId, sourceIds },
     }),
+    onError: (chatError) => {
+      toast.error(chatError.message || 'Something went wrong. Please try again.');
+    },
   });
 
   const hasSources = sourceIds.length > 0;
