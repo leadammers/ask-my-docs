@@ -97,8 +97,21 @@ export function NotebookCard({ id, title, isDemo, updatedAt, sourceCount }: Note
                 <MoreVerticalIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setRenameOpen(true)}>Rename</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <DropdownMenuItem
+                  onClick={(event: React.MouseEvent<HTMLElement>) => {
+                    stopPropagation(event);
+                    setRenameOpen(true);
+                  }}
+                >
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={(event: React.MouseEvent<HTMLElement>) => {
+                    stopPropagation(event);
+                    setDeleteOpen(true);
+                  }}
+                >
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
