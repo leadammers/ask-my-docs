@@ -20,6 +20,8 @@ const serverShape = z.object({
   OPENAI_COMPATIBLE_BASE_URL: z.string().url().optional(),
   OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
+  // Vercel Cron sends it as a bearer token to /api/cron/retention (T08b).
+  CRON_SECRET: z.string().min(16).optional(),
 
   AI_GLOBAL_DAILY_CAP: z.coerce.number().int().positive(),
   RATE_LIMIT_CHAT_PER_MIN: z.coerce.number().int().positive(),

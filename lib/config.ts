@@ -25,3 +25,10 @@ export const MIN_EXTRACTED_CHARS = 200;
 export const MAX_PDF_PAGES = 300;
 export const CHUNK_INSERT_BATCH_SIZE = 100;
 export const SOURCE_TITLE_MAX_LENGTH = 200;
+
+/** Anonymous users are deleted after this many days without a visit (T08b). */
+export const RETENTION_DAYS = 30;
+/** Users deleted per cron run at most; the next daily run continues. */
+export const RETENTION_BATCH_SIZE = 100;
+/** Cookie that marks "last_seen_at already touched today" for this browser. */
+export const LAST_SEEN_COOKIE = 'last_seen_touch';

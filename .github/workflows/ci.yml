@@ -109,6 +109,11 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '"')"
           } >> "$GITHUB_ENV"
 
+      # Before Playwright: the retention run deletes stale anonymous users
+      # across the whole local DB.
+      - name: Run integration tests
+        run: pnpm test:integration
+
       - name: Cache Playwright browsers
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: playwright-cache
