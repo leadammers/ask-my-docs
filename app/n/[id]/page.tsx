@@ -1,6 +1,9 @@
+import { ArrowLeftIcon } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SourceList, type SourceListItem } from '@/components/source-list';
 import { SourceUpload } from '@/components/source-upload';
+import { Button } from '@/components/ui/button';
 import { env } from '@/lib/env';
 import { notebookIdSchema } from '@/lib/notebooks';
 import type { SourceStatus } from '@/lib/sources';
@@ -64,7 +67,16 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">{notebook.title}</h1>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          render={<Link href="/" aria-label="Back to notebooks" />}
+        >
+          <ArrowLeftIcon />
+        </Button>
+        <h1 className="text-2xl font-semibold">{notebook.title}</h1>
+      </div>
       <section aria-labelledby="sources-heading" className="flex flex-col gap-4">
         <h2 id="sources-heading" className="text-lg font-semibold">
           Sources
