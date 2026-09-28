@@ -388,6 +388,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      match_chunks: {
+        Args: {
+          p_k?: number
+          p_notebook_id: string
+          p_query_embedding: string
+          p_query_text: string
+          p_source_ids: string[]
+        }
+        Returns: {
+          chunk_id: string
+          content: string
+          fused_score: number
+          page_from: number
+          page_to: number
+          source_id: string
+          text_rank: number
+          vector_score: number
+        }[]
+      }
       record_ai_usage_if_allowed: {
         Args: {
           p_daily_cap: number
