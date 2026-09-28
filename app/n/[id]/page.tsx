@@ -1,10 +1,12 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Chat } from '@/components/chat/chat';
-import { SourceList, type SourceListItem } from '@/components/source-list';
-import { SourceUpload } from '@/components/source-upload';
+import type { SourceListItem } from '@/components/source-list';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { NotebookTitle } from '@/components/workspace/notebook-title';
+import { StudioPanel } from '@/components/workspace/studio-panel';
+import { Workspace } from '@/components/workspace/workspace';
 import { citationSchema, type Citation } from '@/lib/chat/citations';
 import { CHAT_MAX_SOURCE_IDS } from '@/lib/config';
 import { env } from '@/lib/env';
@@ -117,35 +119,35 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
     .slice(0, CHAT_MAX_SOURCE_IDS);
   const initialMessages = (messageRows ?? []).map((row) => toInitialMessage(row as MessageRow));
 
+  // A bounded shell: the workspace fills the viewport and each column scrolls on
+  // its own, instead of the whole page scrolling under a fixed-height chat pane.
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
-      <div className="flex items-center gap-2">
+    <main className="mx-auto flex h-dvh w-full max-w-5xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
+          // The rendered element is an anchor, not a <button>: without this Base UI
+          // warns that it is keeping button semantics on a non-button.
+          nativeButton={false}
           render={<Link href="/" aria-label="Back to notebooks" />}
         >
           <ArrowLeftIcon />
         </Button>
-        <h1 className="text-2xl font-semibold">{notebook.title}</h1>
+        <NotebookTitle notebookId={notebook.id} title={notebook.title} canEdit={canEdit} />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <StudioPanel />
+        </div>
       </div>
-      <section aria-labelledby="sources-heading" className="flex flex-col gap-4">
-        <h2 id="sources-heading" className="text-lg font-semibold">
-          Sources
-        </h2>
-        {canEdit ? <SourceUpload notebookId={notebook.id} maxUploadMb={env.MAX_UPLOAD_MB} /> : null}
-        <SourceList sources={sourceItems} canEdit={canEdit} />
-      </section>
-      <section aria-labelledby="chat-heading" className="flex flex-col gap-4">
-        <h2 id="chat-heading" className="sr-only">
-          Chat
-        </h2>
-        <Chat
-          notebookId={notebook.id}
-          sourceIds={readySourceIds}
-          initialMessages={initialMessages}
-        />
-      </section>
+      <Workspace
+        notebookId={notebook.id}
+        canEdit={canEdit}
+        maxUploadMb={env.MAX_UPLOAD_MB}
+        sources={sourceItems}
+        readySourceIds={readySourceIds}
+        initialMessages={initialMessages}
+      />
     </main>
   );
 }

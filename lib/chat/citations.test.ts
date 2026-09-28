@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseUsedCitations, type Citation } from '@/lib/chat/citations';
+import { formatCitationPages, parseUsedCitations, type Citation } from '@/lib/chat/citations';
 
 function citation(n: number): Citation {
   return {
@@ -40,5 +40,23 @@ describe('parseUsedCitations', () => {
 
   it('returns an empty array when the answer cites nothing', () => {
     expect(parseUsedCitations('No citations at all.', [citation(1)])).toEqual([]);
+  });
+});
+
+describe('formatCitationPages', () => {
+  it('labels a single page', () => {
+    expect(formatCitationPages(3, 3)).toBe('p. 3');
+  });
+
+  it('labels a page range', () => {
+    expect(formatCitationPages(3, 4)).toBe('p. 3-4');
+  });
+
+  it('returns an empty label when the source has no pages', () => {
+    expect(formatCitationPages(null, null)).toBe('');
+  });
+
+  it('labels a page whose end is unknown as a single page', () => {
+    expect(formatCitationPages(3, null)).toBe('p. 3');
   });
 });

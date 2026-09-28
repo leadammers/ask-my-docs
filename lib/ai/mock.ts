@@ -7,6 +7,17 @@ type Prompt = Parameters<MockLanguageModelV4['doStream']>[0]['prompt'];
 // Deterministic stand-ins for E2E tests and CI (AI_PROVIDER=mock). lib/env.ts
 // refuses this provider in Vercel production.
 
+/**
+ * Time between two streamed tokens. `simulateReadableStream` emits instantly by
+ * default, which makes the answer land in a single render: nothing can observe
+ * the stream while it is in flight, so streaming-only behaviour (the stop
+ * button, a tab switch mid-answer) is untestable and the mock never exercises
+ * the code path a real provider does. Ten tokens at this delay is about a
+ * second and a half — slow enough to observe, quick enough to not slow the
+ * suite down.
+ */
+const STREAM_CHUNK_DELAY_MS = 150;
+
 export const MOCK_ANSWER = 'According to your sources, this is a mock answer [1].';
 
 // A question containing this marker makes the mock model answer with an
@@ -85,6 +96,7 @@ export function mockChatModel(modelId: string): MockLanguageModelV4 {
       const answer = answerFor(prompt);
       return {
         stream: simulateReadableStream({
+          chunkDelayInMs: STREAM_CHUNK_DELAY_MS,
           chunks: [
             { type: 'text-start', id: 'text-1' },
             ...answer.split(/(?<= )/).map((delta) => ({

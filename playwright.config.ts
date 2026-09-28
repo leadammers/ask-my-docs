@@ -19,7 +19,19 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // Locally the webServer is `next dev`, which compiles routes on demand and
+  // shares one local Supabase across the run. At the default (half the cores,
+  // 8 here) the ingest tests time out waiting for a source to reach Ready and
+  // the failures land on whichever specs happen to overlap — including ones
+  // untouched by the change under test. CI runs against `next build && next
+  // start`, so it keeps the default.
+  workers: process.env.CI ? undefined : 4,
   reporter: [['html', { open: 'never' }]],
+  // A fresh context's first paint is gated on an anonymous sign-in and then a
+  // reload. Locally that runs against `next dev` with every spec compiling
+  // routes at once, so the default 5s is routinely too short even though the
+  // flow works — a genuinely broken one still fails, just after 15s.
+  expect: { timeout: 15_000 },
   use: {
     baseURL,
     trace: 'on-first-retry',

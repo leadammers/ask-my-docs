@@ -245,16 +245,19 @@ Minimal but real: structured `console` logs (JSON) in route handlers with `reque
 ```text
 app/
   (app)/page.tsx                 notebook list
-  (app)/n/[id]/page.tsx          notebook: sources | chat | studio
+  n/[id]/page.tsx                notebook workspace: sources | chat, plus drawers.
+                                 Outside the (app) group, so it carries its own
+                                 not-found / error / loading boundaries.
   api/sources/[id]/ingest/route.ts
   api/chat/route.ts
   api/audio/route.ts
 components/                      UI (shadcn/ui in components/ui)
+  workspace/                     the notebook page's client side (layout + drawers)
 lib/
   ai/                            provider.ts, mock.ts, embeddings.ts, retry.ts, usage.ts (tts later)
   ingest/                        adapters/, chunk.ts, pipeline.ts
   retrieval/
-  chat/                          prompt.ts, citations.ts
+  chat/                          prompt.ts, citations.ts, passage.ts
   studio/                        guide.ts, audio.ts, wav.ts
   supabase/                      client.ts, server.ts, admin.ts (service role), types.ts (generated)
   rate-limit.ts                  per-user limits + global daily cap over usage_events

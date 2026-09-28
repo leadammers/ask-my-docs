@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { deleteSource } from '@/app/n/[id]/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { userMessage } from '@/lib/errors';
 import {
   describeProgress,
@@ -17,6 +18,8 @@ import {
 } from '@/lib/sources';
 import { startIngest } from '@/lib/start-ingest';
 
+type SourceListProps = { sources: SourceListItem[]; canEdit: boolean; selection?: SourceSelection };
+
 export type SourceListItem = {
   id: string;
   title: string;
@@ -26,6 +29,17 @@ export type SourceListItem = {
   pageCount: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/**
+ * Which sources the next chat answer is grounded in. `maxSelected` is the API's
+ * own cap (`CHAT_MAX_SOURCE_IDS`); reaching it disables the unchecked boxes
+ * rather than letting the user build a selection the API would reject with 400.
+ */
+export type SourceSelection = {
+  selectedIds: string[];
+  maxSelected: number;
+  onToggle: (sourceId: string) => void;
 };
 
 const POLL_INTERVAL_MS = 2000;
@@ -47,9 +61,7 @@ const STATUS_VARIANTS: Record<SourceStatus, StatusVariant> = {
   failed: 'destructive',
 };
 
-type SourceListProps = { sources: SourceListItem[]; canEdit: boolean };
-
-export function SourceList({ sources, canEdit }: SourceListProps) {
+export function SourceList({ sources, canEdit, selection }: SourceListProps) {
   const router = useRouter();
   const [now, setNow] = useState<Date>(() => new Date());
   const [isDeletePending, startDelete] = useTransition();
@@ -109,31 +121,45 @@ export function SourceList({ sources, canEdit }: SourceListProps) {
           const canRetry =
             canEdit &&
             isRetryable(source.status, new Date(source.createdAt), new Date(source.updatedAt), now);
+          const isSelected = selection?.selectedIds.includes(source.id) ?? false;
+          const isAtSelectionCap =
+            selection !== undefined && selection.selectedIds.length >= selection.maxSelected;
 
           return (
             <li
               key={source.id}
               className="border-border flex items-start justify-between gap-4 rounded-lg border p-3"
             >
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="truncate font-medium">{source.title}</p>
-                <div aria-live="polite" className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={STATUS_VARIANTS[source.status]}>
-                      {STATUS_LABELS[source.status]}
-                    </Badge>
-                    {progressLine ? (
-                      <span className="text-muted-foreground text-sm">{progressLine}</span>
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                {selection ? (
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={isSelected}
+                    disabled={source.status !== 'ready' || (isAtSelectionCap && !isSelected)}
+                    aria-label={`Use ${source.title} in chat`}
+                    onCheckedChange={() => selection.onToggle(source.id)}
+                  />
+                ) : null}
+                <div className="flex min-w-0 flex-col gap-1">
+                  <p className="truncate font-medium">{source.title}</p>
+                  <div aria-live="polite" className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={STATUS_VARIANTS[source.status]}>
+                        {STATUS_LABELS[source.status]}
+                      </Badge>
+                      {progressLine ? (
+                        <span className="text-muted-foreground text-sm">{progressLine}</span>
+                      ) : null}
+                    </div>
+                    {source.status === 'ready' && source.pageCount !== null ? (
+                      <p className="text-muted-foreground text-sm">
+                        {formatPageCount(source.pageCount)}
+                      </p>
+                    ) : null}
+                    {source.status === 'failed' && source.error ? (
+                      <p className="text-destructive text-sm">{source.error}</p>
                     ) : null}
                   </div>
-                  {source.status === 'ready' && source.pageCount !== null ? (
-                    <p className="text-muted-foreground text-sm">
-                      {formatPageCount(source.pageCount)}
-                    </p>
-                  ) : null}
-                  {source.status === 'failed' && source.error ? (
-                    <p className="text-destructive text-sm">{source.error}</p>
-                  ) : null}
                 </div>
               </div>
               {canEdit ? (
