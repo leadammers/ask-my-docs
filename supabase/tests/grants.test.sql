@@ -3,7 +3,7 @@
 -- hosted project can't silently drift apart again (see
 -- 20260927130918_explicit_grants.sql for why this matters).
 begin;
-select plan(27);
+select plan(30);
 
 select table_privs_are('public', 'app_settings', 'anon', array[]::text[], 'anon has no privileges on app_settings');
 select table_privs_are('public', 'app_settings', 'authenticated', array['SELECT'], 'authenticated can only select app_settings');
@@ -40,6 +40,13 @@ select table_privs_are('public', 'audio_overviews', 'service_role', array['SELEC
 select table_privs_are('public', 'usage_events', 'anon', array[]::text[], 'anon has no privileges on usage_events');
 select table_privs_are('public', 'usage_events', 'authenticated', array['SELECT'], 'authenticated can only select usage_events');
 select table_privs_are('public', 'usage_events', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on usage_events');
+
+-- demo_entitlements has RLS and no policies: public.is_demo_entitled() is the
+-- only door (20260929114828_demo_entitlement.sql). A grant to `authenticated`
+-- would be self-service — a visitor could mint their own entitlement.
+select table_privs_are('public', 'demo_entitlements', 'anon', array[]::text[], 'anon has no privileges on demo_entitlements');
+select table_privs_are('public', 'demo_entitlements', 'authenticated', array[]::text[], 'authenticated has no privileges on demo_entitlements');
+select table_privs_are('public', 'demo_entitlements', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on demo_entitlements');
 
 select * from finish();
 rollback;

@@ -8,6 +8,11 @@ insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
   ('22222222-2222-2222-2222-222222222222', 'b@test.local');
 
+-- A creates a notebook below, which needs a live demo entitlement
+-- (20260929114828). B needs none: it only ever reads.
+insert into demo_entitlements (user_id, expires_at)
+values ('11111111-1111-1111-1111-111111111111', now() + interval '8 hours');
+
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
 

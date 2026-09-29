@@ -2,6 +2,7 @@ import path from 'node:path';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { DEMO_AUTH_STATE } from '../playwright.config';
+import { entitleSession } from './entitle';
 
 const FIXTURES = path.join(__dirname, '..', 'test', 'fixtures');
 
@@ -9,7 +10,8 @@ const FIXTURES = path.join(__dirname, '..', 'test', 'fixtures');
 // keep only the demo-gate cookie from the setup state, drop the Supabase
 // session, and AuthGate signs a brand-new anonymous user in. Own user =
 // no interference with notebooks.spec.ts (which drains the shared user's
-// notebooks) and a clean per-notebook source count.
+// notebooks) and a clean per-notebook source count. The new user needs the
+// demo entitlement too, or every write below is refused (e2e/entitle.ts).
 async function freshUser(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ storageState: DEMO_AUTH_STATE });
   const cookies = await context.cookies();
@@ -20,6 +22,7 @@ async function freshUser(browser: Browser): Promise<Page> {
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
+  await entitleSession(context);
   return page;
 }
 

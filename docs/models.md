@@ -142,6 +142,7 @@ erDiagram
 | `usage_events` | `id`, `user_id`, `kind`, `created_at` | Append-only, for rate limiting. No client insert policy — a client-writable one would let a user erase or fabricate their own usage. |
 | `user_activity` | `user_id PK/FK`, `last_seen_at` | One row per user, written only by the security-definer `touch_last_seen()`. No policies and no grants: the row *is* the claim "this user has been seen", so a client that could write it could keep itself from ever being deleted. |
 | `retention_state` | `user_id PK/FK`, `attempted_at` | One row per user, the last time the cleanup claimed them. Bookkeeping, not activity — separate from `user_activity` so recording an attempt never makes an idle user look active. No policies and, unusually, no grants at all: only `claim_retention_user()` and `list_retention_candidates()` read it, both security definer. |
+| `demo_entitlements` | `user_id PK/FK`, `expires_at` | One row per session that entered the demo password. Written only by `app/demo-login/actions.ts` through the service-role client. No policies and no grants to `anon`/`authenticated`, so there is no client path that hands out access; `is_demo_entitled()` is the only way to read it. See "Demo notebook" below. |
 
 ## Demo notebook
 
@@ -151,6 +152,14 @@ The demo notebook and everything under it belongs to a dedicated auth user, whos
 2. the row's own `user_id = app_settings.demo_owner_id`.
 
 Checking only (1) would let a visitor read a row they put into the demo notebook (their own row, `is_demo` true by virtue of the parent) as if it were the demo owner's — a stored prompt-injection path into every reviewer's session. `notebooks`, `sources`, `chunks`, `notebook_guides` and `audio_overviews` all carry this pair of checks; `messages` and `notes` don't need it (`messages` has no demo-select policy at all, `notes` has no demo content). For `chunks` the check is now defense in depth rather than the only barrier: with no write grant, no visitor can put a row there in the first place.
+
+### The entitlement (20260929114828)
+
+Who may read the demo content is a separate question from what it is, and it is answered in the database. The password check runs in the Next app, but PostgREST is a different origin: a visitor who never entered the password can still sign in anonymously (the root layout mounts `AuthGate` on `/demo-login` too) and call the API directly with the anon key. So a successful password entry also writes a `demo_entitlements` row for the caller's session, and the eight policies above plus `notebooks_insert_owner` additionally require `public.is_demo_entitled()` — a row for `auth.uid()` whose `expires_at` has not passed. `messages_insert_owner` is the ninth: it carries the "anyone may chat with the demo notebook" branch, so its demo half is gated too.
+
+Gating `notebooks_insert_owner` covers the whole write side: every other insert policy's `with check` requires the parent notebook to be owned and not demo, so a visitor who cannot create a notebook cannot create anything, and `chunks`, `usage_events` and `audio_overviews` have no client insert at all. That is what keeps the change to nine policies rather than all ~30.
+
+The entitlement is per **session**, not per cookie — the cookie gates routes, the row gates data, and both last `DEMO_SESSION_DURATION_MS` (8 h). Keeping the cookie while losing the Supabase session (a new anonymous user is minted) leaves the routes open and the data closed, so the app renders empty until the password is entered again; requiring it is the point (D-21).
 
 ## Storage buckets
 
