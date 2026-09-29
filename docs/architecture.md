@@ -109,6 +109,7 @@ audio_overviews  (id, notebook_id, user_id, status, progress jsonb, script jsonb
 
 usage_events     (id, user_id, kind, created_at)            -- for rate limiting
 user_activity    (user_id, last_seen_at)                    -- retention (T08b); written once a day
+retention_state  (user_id, attempted_at)                    -- retention (T08b); last claim, not activity
 ```
 
 Full-text search uses the `simple` configuration so German and English documents both work without language detection.
@@ -186,6 +187,31 @@ If retrieval returns nothing above a minimum similarity, skip the LLM call and r
 ```
 
 Fallback: if TTS fails or is rate-limited, keep the script and show it as a transcript with a clear "audio unavailable" state. The feature degrades, never breaks.
+
+### 4.6 Retention
+
+Anonymous users are deleted after `RETENTION_DAYS` without a visit. A visit is recorded by `proxy.ts`, which calls `touch_last_seen()` behind a cookie throttle (`LAST_SEEN_COOKIE`) — one write per user per day, on any page.
+
+```text
+GET /api/cron/retention        Vercel Cron, 17 3 * * *, bearer CRON_SECRET, maxDuration 60
+  |
+  |  service-role client, ids come from the database, never from the request
+  |
+1. list_retention_candidates(cutoff, RETENTION_BATCH_SIZE)
+     anonymous users whose last activity is older than the cutoff,
+     never-attempted first, oldest activity next — a user who keeps
+     failing rotates behind the queue instead of blocking it
+2. selectUsersToDelete()                    (lib/retention.ts, pure: activity, demo owner)
+3. per user:  claim_retention_user()        one statement: still stale? still unclaimed?
+     |  refused -> skipped in silence (they visited, or another run owns them)
+     v
+   remove Storage objects ({user_id}/ in `sources` and `audio`)
+     |  fails -> counted failed, left claimed; the next run retries after RETENTION_RETRY_AFTER
+     v
+   auth.admin.deleteUser() -> FK cascade removes rows
+```
+
+The cutoff is computed once per run and reused for the candidate query and every claim, so the run judges against a single instant. Residual window, accepted and documented like the others (`conventions/security.md` §7): a user who returns in the seconds between the claim and the Storage removal still loses their files — Postgres can't cover a Storage call, and a lock shared with `touch_last_seen` would only block every page view of a user whose deletion had already been committed.
 
 ## 5. Configuration
 

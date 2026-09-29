@@ -53,3 +53,11 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm db:reset && pnpm 
 - Vercel Cron only runs on **production** deployments, defined under `crons` in `vercel.json`. Test the route locally by calling it with the bearer token.
 - The service-role client (`lib/supabase/admin.ts`) is fine here: the ids come from the database query, never from request input.
 - Follow the explicit-grants rule for the new SQL function (hosted Supabase does not grant defaults).
+
+## From the PR #9 review (2026-09-29)
+Two design-level findings changed the cleanup after the fact; the rest of the review was logging, env validation and docs.
+
+- **Selection starved.** The candidate query returned the 100 oldest users every run, so a user whose storage cleanup always fails kept their slot and nothing newer was ever reached — retention stalled while looking healthy. Candidates are now ordered `attempted_at nulls first, activity, id`.
+- **Selection was not a commitment.** A user was picked, their files were removed, then the user was deleted; a visit in that window did not stop it. `claim_retention_user()` now settles "still stale?" and "not already claimed" in one statement, and `runRetention` claims before it touches anything. A refused claim is a silent skip, not a failure.
+- Both need one new fact — when we last acted on a user — so they share `retention_state`, deliberately separate from `user_activity` (whose row *is* the claim "seen"): see D-20's amendment and `docs/architecture.md` §4.6. `RETENTION_RETRY_AFTER` (20 h) is the claim window.
+- Deferred: the residual claim→Storage window (a returning user can still lose files) and the coarser per-IP limit ahead of the global cap are both documented as accepted, not fixed.
