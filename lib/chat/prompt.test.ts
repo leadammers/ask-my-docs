@@ -35,18 +35,18 @@ function promptFor(count: number): string {
   return buildSystemPrompt(
     citations,
     citations.map((item: Citation) => chunk(item.n)),
-  );
+  ).systemPrompt;
 }
 
 describe('buildSystemPrompt', () => {
   it('tells the model which block labels it is allowed to cite', () => {
     const citations = [citation(1), citation(2), citation(3)];
 
-    const prompt = buildSystemPrompt(
+    const { systemPrompt } = buildSystemPrompt(
       citations,
       citations.map((item: Citation) => chunk(item.n)),
     );
-    const range = /\[1\] through \[(\d+)\]/.exec(prompt);
+    const range = /\[1\] through \[(\d+)\]/.exec(systemPrompt);
 
     expect(range?.[1]).toBeDefined();
     expect(Number(range?.[1])).toBe(citations.length);
@@ -78,7 +78,7 @@ describe('buildSystemPrompt context budget', () => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
-    const context = contextOf(buildSystemPrompt(citations, chunks));
+    const context = contextOf(buildSystemPrompt(citations, chunks).systemPrompt);
 
     expect(context.length).toBeLessThanOrEqual(CHAT_MAX_CONTEXT_CHARS);
     expect(context).toContain('a'.repeat(30_000));
@@ -88,9 +88,22 @@ describe('buildSystemPrompt context budget', () => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
-    const context = contextOf(buildSystemPrompt(citations, chunks));
+    const context = contextOf(buildSystemPrompt(citations, chunks).systemPrompt);
 
     expect(context).not.toContain('bbbbbbbbbb');
+  });
+
+  it('reports only the citations whose blocks the model was given', () => {
+    // A dropped block must not stay citable: the chip would render a passage the
+    // model never read (the route validates and streams this set, not the
+    // retrieved one).
+    const citations = [citation(1), citation(2)];
+    const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
+
+    const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks);
+
+    expect(includedCitations.map((item: Citation) => item.n)).toEqual([1]);
+    expect(systemPrompt).toMatch(/\[1\] through \[1\]/);
   });
 
   it('cuts a single oversized block rather than sending an empty context', () => {
@@ -100,9 +113,12 @@ describe('buildSystemPrompt context budget', () => {
     const citations = [citation(1)];
     const chunks = [chunkWith(1, 'a'.repeat(CHAT_MAX_CONTEXT_CHARS * 2))];
 
-    const context = contextOf(buildSystemPrompt(citations, chunks));
+    const assembled = buildSystemPrompt(citations, chunks);
+    const context = contextOf(assembled.systemPrompt);
 
     expect(context).not.toBe('');
     expect(context.length).toBe(CHAT_MAX_CONTEXT_CHARS);
+    // A cut block is still the block the model read, so it stays citable.
+    expect(assembled.includedCitations.map((item: Citation) => item.n)).toEqual([1]);
   });
 });

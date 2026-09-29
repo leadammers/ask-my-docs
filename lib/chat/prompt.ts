@@ -58,6 +58,17 @@ function formatContextBlock(citation: Citation, content: string): string {
 /** Between two context blocks; counted against `CHAT_MAX_CONTEXT_CHARS`. */
 const CONTEXT_SEPARATOR = '\n\n---\n\n';
 
+export type AssembledPrompt = {
+  systemPrompt: string;
+  /**
+   * The citations whose blocks are in the prompt, in retrieval order — the only
+   * labels the model may cite. The route validates and streams this set rather
+   * than the retrieved one, so a dropped block cannot be cited back to the
+   * reader as text the model never read.
+   */
+  includedCitations: Citation[];
+};
+
 /**
  * Assembles the context blocks in retrieval order, stopping at the budget.
  * Blocks are kept whole: a block that no longer fits ends the context rather
@@ -65,12 +76,12 @@ const CONTEXT_SEPARATOR = '\n\n---\n\n';
  * chunk. The single exception is a first block that exceeds the budget on its
  * own — dropping it would send an empty context and turn every answer into
  * "I couldn't find this", which is worse than a cut one.
- *
- * `citations` may therefore name blocks that are not below; the labels stay in
- * the allowed-citation range, and `parseUsedCitations` validates a cited [n]
- * against the chunks actually retrieved.
  */
-export function buildSystemPrompt(citations: Citation[], chunks: RetrievedChunk[]): string {
+export function buildSystemPrompt(
+  citations: Citation[],
+  chunks: RetrievedChunk[],
+): AssembledPrompt {
+  const includedCitations: Citation[] = [];
   const blocks: string[] = [];
   let usedChars = 0;
 
@@ -80,18 +91,30 @@ export function buildSystemPrompt(citations: Citation[], chunks: RetrievedChunk[
     const block = formatContextBlock(citation, chunk.content);
     const cost = blocks.length === 0 ? block.length : CONTEXT_SEPARATOR.length + block.length;
     if (usedChars + cost > CHAT_MAX_CONTEXT_CHARS) {
-      if (blocks.length === 0) blocks.push(block.slice(0, CHAT_MAX_CONTEXT_CHARS));
+      if (blocks.length === 0) {
+        blocks.push(block.slice(0, CHAT_MAX_CONTEXT_CHARS));
+        includedCitations.push(citation);
+      }
       break;
     }
     blocks.push(block);
+    includedCitations.push(citation);
     usedChars += cost;
   }
 
-  return `${systemRules(citations.length)}
+  // Blocks are labelled 1..n in the order they are offered, so the last one
+  // included is also the last label the model is allowed to use.
+  const lastIncluded = includedCitations[includedCitations.length - 1];
+  const lastLabel = lastIncluded ? lastIncluded.n : 0;
+
+  return {
+    systemPrompt: `${systemRules(lastLabel)}
 
 <context>
 ${blocks.join(CONTEXT_SEPARATOR)}
-</context>`;
+</context>`,
+    includedCitations,
+  };
 }
 
 /** The last N turns, oldest first, for follow-up questions. */

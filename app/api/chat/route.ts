@@ -138,7 +138,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const citations = buildCitationMap(chunks, question);
-  const systemPrompt = buildSystemPrompt(citations, chunks);
+  // Only the blocks the prompt actually carries may be cited back — see
+  // buildSystemPrompt (20260929 review).
+  const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks);
   const modelMessages = [
     ...history.map((turn) => ({ role: turn.role, content: turn.text })),
     { role: 'user' as const, content: question },
@@ -150,7 +152,7 @@ export async function POST(request: Request): Promise<Response> {
     messages: modelMessages,
     maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
     onFinish: async (event) => {
-      const usedCitations = parseUsedCitations(event.text, citations);
+      const usedCitations = parseUsedCitations(event.text, includedCitations);
       const { error } = await admin.from('messages').insert({
         notebook_id: notebook.id,
         user_id: user.id,
@@ -187,7 +189,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
-      writer.write({ type: 'data-citations', id: 'citations', data: citations });
+      writer.write({ type: 'data-citations', id: 'citations', data: includedCitations });
       writer.merge(toUIMessageStream({ stream: result.fullStream }));
     },
     // Never forward raw provider error text to the client (security.md §12).
