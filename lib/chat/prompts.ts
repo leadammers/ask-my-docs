@@ -55,17 +55,35 @@ export function buildCitationMap(chunks: RetrievedChunk[], question: string): Ci
   }));
 }
 
+/**
+ * Untrusted text sits between our `<context>` tags, so a document (or a source
+ * title, which the uploader chose) containing the closing tag would end the data
+ * section early and arrive after it as if it were ours — the rules saying the
+ * context is data cannot help once the markup no longer agrees (CWE-1427,
+ * conventions/security.md §6). The brackets are what make a tag a tag, so they
+ * are what get broken: `[/context]` is still legible to the model as the
+ * document's own text and cannot be read as markup. Matching is
+ * case-insensitive and tolerates the space a forged tag may carry, because the
+ * model does not care how it is spelled. Only this one token is touched — every
+ * other `<`, `>` or word is left byte-for-byte, which keeps the text the model
+ * reads the same text the citation quote is taken from and the drawer highlights.
+ */
+function neutralizeContextTag(text: string): string {
+  return text.replace(/<(\/?)context(\s*)>/gi, '[$1context$2]');
+}
+
 function formatPages(pageFrom: number | null, pageTo: number | null): string {
   if (pageFrom == null) return '';
   return pageFrom === pageTo ? `, p. ${pageFrom}` : `, p. ${pageFrom}-${pageTo}`;
 }
 
 function formatContextHeader(citation: Citation): string {
-  return `[${citation.n}] (Source: "${citation.sourceTitle}"${formatPages(citation.pageFrom, citation.pageTo)})`;
+  const title = neutralizeContextTag(citation.sourceTitle);
+  return `[${citation.n}] (Source: "${title}"${formatPages(citation.pageFrom, citation.pageTo)})`;
 }
 
 function formatContextBlock(citation: Citation, content: string): string {
-  return `${formatContextHeader(citation)}\n${content}`;
+  return `${formatContextHeader(citation)}\n${neutralizeContextTag(content)}`;
 }
 
 /** Between two context blocks; counted against `CHAT_MAX_CONTEXT_CHARS`. */
