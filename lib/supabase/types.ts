@@ -303,6 +303,21 @@ export type Database = {
           },
         ]
       }
+      retention_state: {
+        Row: {
+          attempted_at: string
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sources: {
         Row: {
           char_count: number | null
@@ -403,6 +418,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_retention_user: {
+        Args: {
+          p_inactive_before: string
+          p_retry_after: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       list_retention_candidates: {
         Args: { p_inactive_before: string; p_limit: number }
         Returns: {
