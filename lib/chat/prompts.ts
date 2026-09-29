@@ -44,7 +44,7 @@ function systemRules(citationCount: number): string {
  * re-quotes that one from the part it kept.
  */
 export function buildCitationMap(chunks: RetrievedChunk[], question: string): Citation[] {
-  return chunks.map((chunk, index): Citation => ({
+  return chunks.map((chunk: RetrievedChunk, index: number): Citation => ({
     n: index + 1,
     chunkId: chunk.chunkId,
     sourceId: chunk.sourceId,
