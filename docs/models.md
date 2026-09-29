@@ -133,8 +133,8 @@ erDiagram
 |---|---|---|
 | `app_settings` | `id boolean PK` (always `true`), `demo_owner_id uuid` | Single row. Readable by all authenticated users, writable by none through the API — service role only. |
 | `notebooks` | `id`, `user_id`, `title` (≤200 chars), `is_demo` | Root of ownership; every other table's RLS chains back to this via `notebook_id`. |
-| `sources` | `id`, `notebook_id`, `user_id`, `kind`, `title`, `storage_path`, `url`, `status`, `progress jsonb` | `unique (id, notebook_id)` exists so `chunks` can carry a composite FK. |
-| `chunks` | `id`, `source_id`, `notebook_id`, `user_id`, `ordinal`, `content`, `embedding vector(768)`, `fts tsvector` | FK is `(source_id, notebook_id) → sources(id, notebook_id)`, not a plain `source_id → sources(id)` — this is what stops a chunk from being attached to a source in a different notebook. HNSW index on `embedding`, GIN on `fts`. |
+| `sources` | `id`, `notebook_id`, `user_id`, `kind`, `title`, `storage_path`, `url`, `status`, `progress jsonb`, `updated_at` | `unique (id, notebook_id)` exists so `chunks` can carry a composite FK. `updated_at` trigger, same as `notebooks`. |
+| `chunks` | `id`, `source_id`, `notebook_id`, `user_id`, `ordinal`, `content`, `embedding vector(768)`, `fts tsvector` | FK is `(source_id, notebook_id) → sources(id, notebook_id)`, not a plain `source_id → sources(id)` — this is what stops a chunk from being attached to a source in a different notebook. HNSW index on `embedding`, GIN on `fts`. Read-only through the API — see "RLS pattern". |
 | `messages` | `id`, `notebook_id`, `user_id`, `role`, `content`, `citations jsonb` | No demo select policy: everyone chats with the demo notebook, but each visitor only ever reads their own messages. |
 | `notes` | `id`, `notebook_id`, `user_id`, `title`, `content`, `citations jsonb`, `origin` | `updated_at` trigger, same as `notebooks`. |
 | `notebook_guides` | `notebook_id PK/FK`, `user_id`, `summary`, `topics jsonb`, `questions jsonb`, `source_fingerprint` | One row per notebook — `notebook_id` is the primary key, not a separate `id`. |
@@ -150,15 +150,17 @@ The demo notebook and everything under it belongs to a dedicated auth user, whos
 1. the row's parent `notebooks.is_demo = true`, and
 2. the row's own `user_id = app_settings.demo_owner_id`.
 
-Checking only (1) would let any visitor insert a chunk into the demo notebook (their own row, `is_demo` true by virtue of the parent) and have it served to every other visitor — a stored prompt-injection path into every reviewer's session. `notebooks`, `sources`, `chunks`, `notebook_guides` and `audio_overviews` all carry this pair of checks; `messages` and `notes` don't need it (`messages` has no demo-select policy at all, `notes` has no demo content).
+Checking only (1) would let a visitor read a row they put into the demo notebook (their own row, `is_demo` true by virtue of the parent) as if it were the demo owner's — a stored prompt-injection path into every reviewer's session. `notebooks`, `sources`, `chunks`, `notebook_guides` and `audio_overviews` all carry this pair of checks; `messages` and `notes` don't need it (`messages` has no demo-select policy at all, `notes` has no demo content). For `chunks` the check is now defense in depth rather than the only barrier: with no write grant, no visitor can put a row there in the first place.
 
 ## Storage buckets
 
 | Bucket | Public | Size cap | MIME types | Layout |
 |---|---|---|---|---|
-| `sources` | no | 50 MiB | `application/pdf` | `{auth.uid()}/…` (owner read/write/delete), `demo/…` (read-only to all authenticated users) |
+| `sources` | no | 15 MiB | `application/pdf` | `{auth.uid()}/…` (owner read/write/delete), `demo/…` (read-only to all authenticated users) |
 | `audio` | no | 50 MiB | `audio/mpeg`, `audio/wav` | `{auth.uid()}/…` (owner read/delete; write is server-only), `demo/…` (read-only) |
 
 ## RLS pattern
 
-Every table: `alter table … enable row level security`, `to authenticated` on every policy (so demo-select policies aren't reachable by unauthenticated requests using only the anon key), owner policies scoped by `user_id = (select auth.uid())`. Insert/update `with check` on `sources`, `chunks`, `notes`, `notebook_guides` also verifies the parent notebook is owned by the same user and is not the demo notebook — see `conventions/database.md` and `conventions/security.md` §3.
+Every table: `alter table … enable row level security`, `to authenticated` on every policy (so demo-select policies aren't reachable by unauthenticated requests using only the anon key), owner policies scoped by `user_id = (select auth.uid())`. Insert/update `with check` on `sources`, `notes`, `notebook_guides` also verifies the parent notebook is owned by the same user and is not the demo notebook — see `conventions/database.md` and `conventions/security.md` §3.
+
+`chunks` carries no insert, update or delete policy and no write grant (20260929102647): clients read them, the ingest pipeline writes them under the service role. Only `chunks_select_owner` and `chunks_select_demo` remain. Deleting a source or notebook still clears its chunks — the foreign-key cascade runs as the table owner, so it needs no client privilege.

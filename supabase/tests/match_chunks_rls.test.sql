@@ -22,6 +22,11 @@ insert into sources (id, notebook_id, kind, title) values
     'Source A'
   );
 
+-- The chunk goes in as the table owner: `authenticated` holds no insert grant
+-- on chunks (20260929102647) — the ingest pipeline writes them under the
+-- service role. `request.jwt.claims` is still set, so `user_id` defaults to A.
+reset role;
+
 insert into chunks (source_id, notebook_id, ordinal, content, embedding) values
   (
     '44444444-4444-4444-4444-444444444444',
@@ -30,6 +35,8 @@ insert into chunks (source_id, notebook_id, ordinal, content, embedding) values
     'the quick brown fox',
     array_fill(0::real, array[768])::vector(768)
   );
+
+set local role authenticated;
 
 select is(
   (

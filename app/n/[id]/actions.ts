@@ -62,6 +62,9 @@ export async function createSourceUpload(input: {
     title: sourceTitleFromFileName(fileName),
     storage_path: path,
   });
+  // The database trigger is the real limit (parallel uploads can both pass the
+  // count above); it raises check_violation (23514) — see 20260928110000.
+  if (insertError?.code === '23514') return fail('source_limit_reached');
   if (insertError) return fail('unexpected');
 
   const { data: upload, error: uploadError } = await supabase.storage

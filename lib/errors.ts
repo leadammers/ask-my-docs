@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type ErrorCode =
   | 'unauthorized'
   | 'not_found'
@@ -93,4 +95,34 @@ export type ErrorResponse = { status: number; code: ErrorCode; userMessage: stri
 export function toErrorResponse(error: unknown): ErrorResponse {
   const code: ErrorCode = error instanceof AppError ? error.code : 'unexpected';
   return { status: STATUS[code], code, userMessage: MESSAGES[code] };
+}
+
+/** The body a route sends on failure; `apiErrorMessage` reads it back on the client. */
+export function errorResponse(code: ErrorCode): Response {
+  const { status, userMessage: message } = toErrorResponse(new AppError(code));
+  return Response.json({ error: { code, message } }, { status });
+}
+
+const apiErrorBodySchema = z.object({ error: z.object({ message: z.string().min(1) }) });
+
+/**
+ * Recovers the user-facing message from a failed API call on the client.
+ *
+ * The AI SDK's transport turns a non-OK response into an error whose `message`
+ * is the response body **verbatim** (`message: responseBody` in
+ * `createUIApiCallError`), so a toast would otherwise show the raw JSON of
+ * `errorResponse` above. Anything that is not that shape — a network failure,
+ * a proxy's HTML error page — yields `null`, and the caller falls back to
+ * `userMessage('unexpected')`.
+ */
+export function apiErrorMessage(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  let body: unknown;
+  try {
+    body = JSON.parse(error.message);
+  } catch {
+    return null;
+  }
+  const parsed = apiErrorBodySchema.safeParse(body);
+  return parsed.success ? parsed.data.error.message : null;
 }

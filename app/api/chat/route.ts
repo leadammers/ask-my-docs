@@ -16,7 +16,7 @@ import { parseUsedCitations } from '@/lib/chat/citations';
 import { chatRequestSchema, extractQuestion } from '@/lib/chat/request';
 import { CHAT_MAX_OUTPUT_TOKENS, CHAT_QUESTION_MAX_CHARS } from '@/lib/config';
 import { env } from '@/lib/env';
-import { AppError, toErrorResponse, userMessage, type ErrorCode } from '@/lib/errors';
+import { errorResponse, toErrorResponse, userMessage } from '@/lib/errors';
 import { assertAiAllowed } from '@/lib/rate-limit';
 import { retrieve } from '@/lib/retrieval/search';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -62,11 +62,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     await assertAiAllowed(user.id, 'chat', env.RATE_LIMIT_CHAT_PER_MIN, CHAT_WINDOW_SECONDS);
   } catch (error: unknown) {
-    const response = toErrorResponse(error);
-    return Response.json(
-      { error: { code: response.code, message: response.userMessage } },
-      { status: response.status },
-    );
+    return errorResponse(toErrorResponse(error).code);
   }
 
   const { data: historyRows, error: historyError } = await supabase
@@ -92,11 +88,7 @@ export async function POST(request: Request): Promise<Response> {
       { requestId, userId: user.id },
     );
   } catch (error: unknown) {
-    const response = toErrorResponse(error);
-    return Response.json(
-      { error: { code: response.code, message: response.userMessage } },
-      { status: response.status },
-    );
+    return errorResponse(toErrorResponse(error).code);
   }
   const { chunks, hasRelevantContext } = retrieved;
 
@@ -203,9 +195,4 @@ export async function POST(request: Request): Promise<Response> {
   });
 
   return createUIMessageStreamResponse({ stream });
-}
-
-function errorResponse(code: ErrorCode): Response {
-  const { status } = toErrorResponse(new AppError(code));
-  return Response.json({ error: { code, message: userMessage(code) } }, { status });
 }

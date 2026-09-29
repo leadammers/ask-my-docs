@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  apiErrorMessage,
   AppError,
   DailyCapReachedError,
   QuotaExceededError,
@@ -76,5 +77,38 @@ describe('AppError', () => {
     const error = new AppError('invalid_input');
     expect(error.code).toBe('invalid_input');
     expect(error.name).toBe('AppError');
+  });
+});
+
+describe('apiErrorMessage', () => {
+  // The AI SDK's transport surfaces a non-OK response body as the error's
+  // `message` verbatim, so this is the shape the chat client actually receives.
+  const transportError = (body: string): Error =>
+    new Error(body, { cause: new Error('non-OK response') });
+
+  it("recovers the route's user-facing message from the raw error body", () => {
+    const body = JSON.stringify({
+      error: { code: 'rate_limited', message: userMessage('rate_limited') },
+    });
+    expect(apiErrorMessage(transportError(body))).toBe(userMessage('rate_limited'));
+  });
+
+  it('returns null for a transport message that is not our error shape', () => {
+    expect(apiErrorMessage(transportError('Failed to fetch the chat response.'))).toBeNull();
+  });
+
+  it('returns null for malformed JSON rather than throwing', () => {
+    expect(apiErrorMessage(transportError('{"error":'))).toBeNull();
+  });
+
+  it('returns null when the body carries no message', () => {
+    expect(
+      apiErrorMessage(transportError(JSON.stringify({ error: { code: 'unexpected' } }))),
+    ).toBeNull();
+  });
+
+  it('returns null for a non-Error value', () => {
+    expect(apiErrorMessage('rate_limited')).toBeNull();
+    expect(apiErrorMessage(undefined)).toBeNull();
   });
 });

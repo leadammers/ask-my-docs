@@ -1,6 +1,6 @@
 -- T02: RLS tests (conventions/database.md, docs/architecture.md §3)
 begin;
-select plan(32);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, RLS does not apply to the table owner)
@@ -91,8 +91,22 @@ delete from notebooks where id = 'b0000000-0000-0000-0000-000000000001';
 update sources set title = 'hacked' where id = 'b1000000-0000-0000-0000-000000000001';
 delete from sources where id = 'b1000000-0000-0000-0000-000000000001';
 
-update chunks set content = 'hacked' where id = 'b2000000-0000-0000-0000-000000000001';
-delete from chunks where id = 'b2000000-0000-0000-0000-000000000001';
+-- chunks are the exception in this section: `authenticated` holds no write
+-- grant at all (20260929102647), so these raise before RLS is consulted. The
+-- rows surviving untouched is asserted again after `reset role` below.
+select throws_ok(
+  $$ update chunks set content = 'hacked' where id = 'b2000000-0000-0000-0000-000000000001' $$,
+  '42501',
+  'permission denied for table chunks',
+  'A cannot update a chunk — authenticated has no update grant on chunks'
+);
+
+select throws_ok(
+  $$ delete from chunks where id = 'b2000000-0000-0000-0000-000000000001' $$,
+  '42501',
+  'permission denied for table chunks',
+  'A cannot delete a chunk — authenticated has no delete grant on chunks'
+);
 
 select throws_ok(
   $$ insert into sources (notebook_id, user_id, kind, title, status)
@@ -102,11 +116,15 @@ select throws_ok(
   'A cannot insert a source into B''s notebook'
 );
 
+-- Inserting a chunk is refused by the missing grant, not by RLS: the grant is
+-- checked first, so the message is `permission denied` for every notebook,
+-- the visitor's own included. The demo case is the one that mattered (a chunk
+-- in the demo notebook is served to every reviewer), and it is refused too.
 select throws_ok(
   $$ insert into chunks (source_id, notebook_id, user_id, ordinal, content)
      values ('b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 0, 'hack') $$,
   '42501',
-  'new row violates row-level security policy for table "chunks"',
+  'permission denied for table chunks',
   'A cannot insert a chunk into B''s notebook'
 );
 
@@ -114,7 +132,7 @@ select throws_ok(
   $$ insert into chunks (source_id, notebook_id, user_id, ordinal, content)
      values ('d1000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 2, 'hack') $$,
   '42501',
-  'new row violates row-level security policy for table "chunks"',
+  'permission denied for table chunks',
   'nobody can insert a chunk into the demo notebook'
 );
 
@@ -155,14 +173,24 @@ select is(
 -- DELETE policy coverage: A can delete its own non-demo rows, but demo rows
 -- (owned by the demo owner) stay protected even though A can read them.
 -- ---------------------------------------------------------------------------
-delete from chunks where id = 'd2000000-0000-0000-0000-000000000001';
+select throws_ok(
+  $$ delete from chunks where id = 'd2000000-0000-0000-0000-000000000001' $$,
+  '42501',
+  'permission denied for table chunks',
+  'a demo chunk cannot be deleted through the API'
+);
 delete from sources where id = 'd1000000-0000-0000-0000-000000000001';
 delete from notes where id = 'd3000000-0000-0000-0000-000000000001';
 delete from notebook_guides where notebook_id = 'd0000000-0000-0000-0000-000000000001';
 delete from audio_overviews where id = 'd4000000-0000-0000-0000-000000000001';
 delete from messages where id = 'd5000000-0000-0000-0000-000000000001';
 
-delete from chunks where id = 'a2000000-0000-0000-0000-000000000001';
+select throws_ok(
+  $$ delete from chunks where id = 'a2000000-0000-0000-0000-000000000001' $$,
+  '42501',
+  'permission denied for table chunks',
+  'A cannot delete its own chunk either — the ingest pipeline clears them under the service role'
+);
 delete from sources where id = 'a1000000-0000-0000-0000-000000000001';
 delete from notes where id = 'a3000000-0000-0000-0000-000000000001';
 delete from notebook_guides where notebook_id = 'a0000000-0000-0000-0000-000000000001';
@@ -175,10 +203,13 @@ delete from messages where notebook_id = 'd0000000-0000-0000-0000-000000000001' 
 -- ---------------------------------------------------------------------------
 reset role;
 
+-- A could not delete this chunk directly (the grant is gone); it is gone
+-- because deleting its source cascaded. That cascade, not a client delete, is
+-- what clears chunks — which is why revoking delete on chunks is safe.
 select is(
   (select count(*)::int from chunks where id = 'a2000000-0000-0000-0000-000000000001'),
   0,
-  'A can delete its own chunk'
+  'A''s chunk is removed by the cascade from its deleted source'
 );
 
 select is(
@@ -311,6 +342,20 @@ select throws_ok(
   '42501',
   'permission denied for table app_settings',
   'nobody can update app_settings through the API'
+);
+
+-- ---------------------------------------------------------------------------
+-- 20260929102647_authenticated_write_bounds.sql: `messages.content` is capped.
+-- (The chunk write revoke from the same migration is covered above, by the
+-- insert/update/delete attempts that now raise `permission denied`.)
+-- ---------------------------------------------------------------------------
+select throws_ok(
+  $$insert into messages (notebook_id, user_id, role, content)
+    values ('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222',
+            'user', repeat('x', 20001))$$,
+  '23514',
+  'new row for relation "messages" violates check constraint "messages_content_length"',
+  'a message longer than the content cap is rejected'
 );
 
 reset role;
