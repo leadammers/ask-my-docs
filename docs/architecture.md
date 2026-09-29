@@ -288,7 +288,7 @@ lib/
   ai/                            provider.ts, mock.ts, embeddings.ts, retry.ts, usage.ts (tts later)
   ingest/                        adapters/, chunk.ts, pipeline.ts
   retrieval/
-  chat/                          prompt.ts, citations.ts, passage.ts
+  chat/                          prompts.ts, citations.ts, passage.ts
   studio/                        guide.ts, audio.ts, wav.ts
   supabase/                      client.ts, server.ts, admin.ts (service role), types.ts (generated)
   rate-limit.ts                  per-user limits + global daily cap over usage_events

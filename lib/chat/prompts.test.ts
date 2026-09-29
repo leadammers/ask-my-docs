@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCitationMap, buildSystemPrompt } from '@/lib/chat/prompt';
+import { buildCitationMap, buildSystemPrompt } from '@/lib/chat/prompts';
 import { CHAT_MAX_CONTEXT_CHARS } from '@/lib/config';
 import type { Citation } from '@/lib/chat/citations';
 import type { RetrievedChunk } from '@/lib/retrieval/search';

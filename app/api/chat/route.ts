@@ -11,7 +11,7 @@ import {
   HISTORY_TURNS,
   NO_CONTEXT_ANSWER,
   recentHistory,
-} from '@/lib/chat/prompt';
+} from '@/lib/chat/prompts';
 import { parseUsedCitations } from '@/lib/chat/citations';
 import { chatRequestSchema, extractQuestion } from '@/lib/chat/request';
 import { CHAT_MAX_OUTPUT_TOKENS, CHAT_QUESTION_MAX_CHARS } from '@/lib/config';
