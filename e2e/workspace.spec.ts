@@ -2,6 +2,7 @@ import path from 'node:path';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { DEMO_AUTH_STATE } from '../playwright.config';
+import { entitleSession } from './entitle';
 
 const FIXTURES = path.join(__dirname, '..', 'test', 'fixtures');
 
@@ -32,7 +33,9 @@ const DRAG_BY_PX = 120;
 const ARROW_STEP_PX = 16;
 
 // Same isolation strategy as the other specs: a fresh anonymous user per test
-// via the demo-gate cookie, so notebooks and rate limits never collide.
+// via the demo-gate cookie, so notebooks and rate limits never collide. The
+// new user needs the demo entitlement too, or every write below is refused
+// (e2e/entitle.ts).
 async function freshUser(browser: Browser, onPage?: (page: Page) => void): Promise<Page> {
   const context = await browser.newContext({ storageState: DEMO_AUTH_STATE });
   const cookies = await context.cookies();
@@ -46,6 +49,7 @@ async function freshUser(browser: Browser, onPage?: (page: Page) => void): Promi
   onPage?.(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
+  await entitleSession(context);
   return page;
 }
 

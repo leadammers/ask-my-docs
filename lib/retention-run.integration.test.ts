@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RETENTION_DAYS } from '@/lib/config';
+import { DEMO_SESSION_DURATION_MS } from '@/lib/demo-gate';
 import {
   claimRetentionUser,
   removeUserObjects,
@@ -34,6 +35,13 @@ async function signInAnonymously(): Promise<TestUser> {
 }
 
 async function addDataFor(user: TestUser): Promise<void> {
+  // Creating a notebook needs a live demo entitlement (20260929114828) — this
+  // is what app/demo-login/actions.ts writes once the password is accepted.
+  const { error: entitlementError } = await admin.from('demo_entitlements').upsert({
+    user_id: user.id,
+    expires_at: new Date(Date.now() + DEMO_SESSION_DURATION_MS).toISOString(),
+  });
+  if (entitlementError) throw entitlementError;
   const { error: notebookError } = await user.client.from('notebooks').insert({ title: 'Mine' });
   if (notebookError) throw notebookError;
   const pdf = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });

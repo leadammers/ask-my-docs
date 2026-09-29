@@ -13,6 +13,15 @@ insert into auth.users (id, email) values
 insert into app_settings (id, demo_owner_id)
 values (true, '33333333-3333-3333-3333-333333333333');
 
+-- A and B are visitors who have entered the demo password: the demo reads and
+-- the notebook insert below both require a live entitlement
+-- (20260929114828_demo_entitlement.sql). B holds one too, so the poisoned-chunk
+-- assertion at the end still isolates the demo-owner condition instead of
+-- passing for the unrelated reason that B cannot see demo content at all.
+insert into demo_entitlements (user_id, expires_at) values
+  ('11111111-1111-1111-1111-111111111111', now() + interval '8 hours'),
+  ('22222222-2222-2222-2222-222222222222', now() + interval '8 hours');
+
 insert into notebooks (id, user_id, title, is_demo) values
   ('a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'A notebook', false),
   ('b0000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'B notebook', false),

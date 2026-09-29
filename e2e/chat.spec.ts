@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { DEMO_AUTH_STATE } from '../playwright.config';
+import { entitleSession } from './entitle';
 
 const FIXTURES = path.join(__dirname, '..', 'test', 'fixtures');
 
@@ -18,6 +19,8 @@ const UNRELATED_QUESTION = 'What is the capital of a country not mentioned anywh
 
 // Same isolation strategy as e2e/sources.spec.ts: a fresh anonymous user per
 // test via the demo-gate cookie, so notebooks and rate limits never collide.
+// The new user needs the demo entitlement too, or every write below is
+// refused (e2e/entitle.ts).
 async function freshUser(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ storageState: DEMO_AUTH_STATE });
   const cookies = await context.cookies();
@@ -28,6 +31,7 @@ async function freshUser(browser: Browser): Promise<Page> {
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
+  await entitleSession(context);
   return page;
 }
 

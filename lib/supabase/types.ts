@@ -156,6 +156,21 @@ export type Database = {
           },
         ]
       }
+      demo_entitlements: {
+        Row: {
+          expires_at: string
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           citations: Json | null
@@ -426,6 +441,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_demo_entitled: { Args: never; Returns: boolean }
       list_retention_candidates: {
         Args: { p_inactive_before: string; p_limit: number }
         Returns: {
