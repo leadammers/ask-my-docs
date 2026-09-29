@@ -16,6 +16,7 @@ const REQUIRED_KEYS = [
   'RATE_LIMIT_AUDIO_PER_DAY',
   'MAX_UPLOAD_MB',
   'MAX_SOURCES_PER_NOTEBOOK',
+  'CRON_SECRET',
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
 ];
@@ -127,6 +128,19 @@ describe('env', () => {
   it('allows AI_PROVIDER=mock in Vercel preview', async () => {
     setValidEnv();
     process.env.AI_PROVIDER = 'mock';
+    process.env.VERCEL_ENV = 'preview';
+    await expect(import('@/lib/env')).resolves.toBeDefined();
+  });
+
+  it('rejects a missing CRON_SECRET in Vercel production', async () => {
+    setValidEnv();
+    process.env.AI_PROVIDER = 'google';
+    process.env.VERCEL_ENV = 'production';
+    await expect(import('@/lib/env')).rejects.toThrow(/CRON_SECRET is required/);
+  });
+
+  it('allows a missing CRON_SECRET outside Vercel production', async () => {
+    setValidEnv();
     process.env.VERCEL_ENV = 'preview';
     await expect(import('@/lib/env')).resolves.toBeDefined();
   });

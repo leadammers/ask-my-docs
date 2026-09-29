@@ -44,6 +44,17 @@ const serverSchema = serverShape
       path: ['AI_PROVIDER'],
     },
   )
+  // Vercel Cron authenticates with this bearer token and runs in production
+  // only. Without it every cron run 401s and retention silently never happens
+  // (T08b) — a misconfiguration that shows up as "nothing was deleted".
+  .refine(
+    (value: ServerValues): boolean =>
+      value.VERCEL_ENV !== 'production' || Boolean(value.CRON_SECRET),
+    {
+      message: 'CRON_SECRET is required in Vercel production',
+      path: ['CRON_SECRET'],
+    },
+  )
   .refine(
     (value: ServerValues): boolean =>
       value.AI_PROVIDER !== 'google' || Boolean(value.GOOGLE_GENERATIVE_AI_API_KEY),
