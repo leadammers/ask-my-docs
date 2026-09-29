@@ -10,6 +10,7 @@ import {
   buildSystemPrompt,
   HISTORY_TURNS,
   NO_CONTEXT_ANSWER,
+  PROMPT_VERSION,
   recentHistory,
 } from '@/lib/chat/prompts';
 import { parseUsedCitations } from '@/lib/chat/citations';
@@ -142,6 +143,19 @@ export async function POST(request: Request): Promise<Response> {
   // buildSystemPrompt (20260929 review). It takes the question too, because a
   // block the budget cuts short is re-quoted from the part the model read.
   const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks, question);
+  // Which prompt answered this request, so an answer reported later can be
+  // traced back to it (conventions/ai.md, "Prompts"). No content, like every
+  // other line (security.md §12).
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      event: 'chat_prompt',
+      requestId,
+      userId: user.id,
+      promptVersion: PROMPT_VERSION,
+    }),
+  );
+
   const modelMessages = [
     ...history.map((turn) => ({ role: turn.role, content: turn.text })),
     { role: 'user' as const, content: question },

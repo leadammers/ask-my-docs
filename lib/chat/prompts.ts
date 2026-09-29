@@ -3,6 +3,13 @@ import { extractCitationQuote } from '@/lib/chat/quote';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
 import type { Citation } from '@/lib/chat/citations';
 
+/**
+ * Bump when the rules or the context format below change, so an answer read
+ * back from `messages` can be traced to the prompt that produced it
+ * (conventions/ai.md, "Prompts"). The route logs it with every request.
+ */
+export const PROMPT_VERSION = 'chat-v1';
+
 export const NO_CONTEXT_ANSWER = "I couldn't find this in your sources.";
 
 export const HISTORY_TURNS = 6;
