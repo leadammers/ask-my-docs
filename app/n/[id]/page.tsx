@@ -136,8 +136,8 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
         </Button>
         <NotebookTitle notebookId={notebook.id} title={notebook.title} canEdit={canEdit} />
         <div className="flex items-center gap-1">
-          <ThemeToggle />
           <StudioPanel />
+          <ThemeToggle />
         </div>
       </div>
       <Workspace
