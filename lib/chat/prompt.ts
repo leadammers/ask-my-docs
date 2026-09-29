@@ -1,3 +1,4 @@
+import { CHAT_MAX_CONTEXT_CHARS } from '@/lib/config';
 import { extractCitationQuote } from '@/lib/chat/quote';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
 import type { Citation } from '@/lib/chat/citations';
@@ -54,19 +55,42 @@ function formatContextBlock(citation: Citation, content: string): string {
   return `[${citation.n}] (Source: "${citation.sourceTitle}"${formatPages(citation.pageFrom, citation.pageTo)})\n${content}`;
 }
 
+/** Between two context blocks; counted against `CHAT_MAX_CONTEXT_CHARS`. */
+const CONTEXT_SEPARATOR = '\n\n---\n\n';
+
+/**
+ * Assembles the context blocks in retrieval order, stopping at the budget.
+ * Blocks are kept whole: a block that no longer fits ends the context rather
+ * than being cut in half, so the model never reads a fragment as if it were the
+ * chunk. The single exception is a first block that exceeds the budget on its
+ * own — dropping it would send an empty context and turn every answer into
+ * "I couldn't find this", which is worse than a cut one.
+ *
+ * `citations` may therefore name blocks that are not below; the labels stay in
+ * the allowed-citation range, and `parseUsedCitations` validates a cited [n]
+ * against the chunks actually retrieved.
+ */
 export function buildSystemPrompt(citations: Citation[], chunks: RetrievedChunk[]): string {
-  const contextBlocks = citations
-    .map((citation, index) => {
-      const chunk = chunks[index];
-      return chunk ? formatContextBlock(citation, chunk.content) : null;
-    })
-    .filter((block): block is string => block !== null)
-    .join('\n\n---\n\n');
+  const blocks: string[] = [];
+  let usedChars = 0;
+
+  for (const [index, citation] of citations.entries()) {
+    const chunk = chunks[index];
+    if (!chunk) continue;
+    const block = formatContextBlock(citation, chunk.content);
+    const cost = blocks.length === 0 ? block.length : CONTEXT_SEPARATOR.length + block.length;
+    if (usedChars + cost > CHAT_MAX_CONTEXT_CHARS) {
+      if (blocks.length === 0) blocks.push(block.slice(0, CHAT_MAX_CONTEXT_CHARS));
+      break;
+    }
+    blocks.push(block);
+    usedChars += cost;
+  }
 
   return `${systemRules(citations.length)}
 
 <context>
-${contextBlocks}
+${blocks.join(CONTEXT_SEPARATOR)}
 </context>`;
 }
 

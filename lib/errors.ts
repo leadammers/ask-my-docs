@@ -13,6 +13,7 @@ export type ErrorCode =
   | 'invalid_pdf'
   | 'scanned_pdf'
   | 'too_many_pages'
+  | 'too_much_text'
   | 'no_text'
   | 'already_processing'
   | 'unexpected';
@@ -30,6 +31,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   invalid_pdf: "That file isn't a valid PDF.",
   scanned_pdf: 'This PDF has no extractable text (scanned?). OCR is not supported.',
   too_many_pages: 'That PDF has too many pages for this demo.',
+  too_much_text: 'That source has too much text for this demo.',
   no_text: "We couldn't find any usable text in that source.",
   already_processing: 'This source is already being processed.',
   unexpected: 'Something went wrong. Please try again.',
@@ -48,6 +50,7 @@ const STATUS: Record<ErrorCode, number> = {
   invalid_pdf: 422,
   scanned_pdf: 422,
   too_many_pages: 422,
+  too_much_text: 422,
   no_text: 422,
   already_processing: 409,
   unexpected: 500,

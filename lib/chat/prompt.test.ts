@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildSystemPrompt } from '@/lib/chat/prompt';
+import { CHAT_MAX_CONTEXT_CHARS } from '@/lib/config';
 import type { Citation } from '@/lib/chat/citations';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
 
@@ -58,5 +59,50 @@ describe('buildSystemPrompt', () => {
   it('labels every block with its number and full content', () => {
     expect(promptFor(2)).toContain('[1] (Source: "report.pdf", p. 1)\ncontent 1');
     expect(promptFor(2)).toContain('[2] (Source: "report.pdf", p. 2)\ncontent 2');
+  });
+});
+
+function chunkWith(n: number, content: string): RetrievedChunk {
+  return { ...chunk(n), content };
+}
+
+/** The assembled context, without the rules and the surrounding tags. */
+function contextOf(prompt: string): string {
+  const match = /<context>\n([\s\S]*)\n<\/context>$/.exec(prompt);
+  if (!match?.[1]) throw new Error('prompt carries no context block');
+  return match[1];
+}
+
+describe('buildSystemPrompt context budget', () => {
+  it('never assembles more context than the budget', () => {
+    const citations = [citation(1), citation(2)];
+    const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
+
+    const context = contextOf(buildSystemPrompt(citations, chunks));
+
+    expect(context.length).toBeLessThanOrEqual(CHAT_MAX_CONTEXT_CHARS);
+    expect(context).toContain('a'.repeat(30_000));
+  });
+
+  it('drops a block that no longer fits instead of cutting it in half', () => {
+    const citations = [citation(1), citation(2)];
+    const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
+
+    const context = contextOf(buildSystemPrompt(citations, chunks));
+
+    expect(context).not.toContain('bbbbbbbbbb');
+  });
+
+  it('cuts a single oversized block rather than sending an empty context', () => {
+    // chunk content is bounded by CHUNK_TARGET_TOKENS, so this is a floor for a
+    // pathological row, not the normal path — an empty context would turn every
+    // answer into "I couldn't find this".
+    const citations = [citation(1)];
+    const chunks = [chunkWith(1, 'a'.repeat(CHAT_MAX_CONTEXT_CHARS * 2))];
+
+    const context = contextOf(buildSystemPrompt(citations, chunks));
+
+    expect(context).not.toBe('');
+    expect(context.length).toBe(CHAT_MAX_CONTEXT_CHARS);
   });
 });
