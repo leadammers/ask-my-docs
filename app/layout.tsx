@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthGate } from '@/components/auth-gate';
+import { RetentionBanner, RetentionFooter } from '@/components/retention-notice';
 import './globals.css';
 
 const inter = Inter({
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
+          <RetentionBanner />
           <TooltipProvider>{children}</TooltipProvider>
+          <RetentionFooter />
           <Toaster />
           <AuthGate />
         </ThemeProvider>

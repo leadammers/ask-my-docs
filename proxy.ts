@@ -1,8 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { LAST_SEEN_COOKIE } from '@/lib/config';
 import { DEMO_COOKIE_NAME, verifyDemoToken } from '@/lib/demo-gate';
 
-const PUBLIC_PATHS = ['/demo-login'];
+// The cron route is protected by its CRON_SECRET bearer token instead of the
+// demo cookie (Vercel Cron can't log in); see app/api/cron/retention.
+const PUBLIC_PATHS = ['/demo-login', '/api/cron/retention'];
 
 // Runs outside the module graph lib/env.ts validates for, same as the other
 // direct process.env reads a proxy needs — see conventions/security.md §2:
@@ -54,7 +57,29 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Records the visit for the retention cleanup (T08b) at most once a day per
+  // browser: the cookie skips the database call on every other request, and
+  // the SQL function itself writes at most once a day. Never blocks the page.
+  if (user && !request.cookies.has(LAST_SEEN_COOKIE)) {
+    try {
+      const { error } = await supabase.rpc('touch_last_seen');
+      if (!error) {
+        response.cookies.set(LAST_SEEN_COOKIE, '1', {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 24 * 60 * 60,
+          path: '/',
+        });
+      }
+    } catch {
+      // Retried on the next request; a missed touch only delays nothing.
+    }
+  }
 
   return response;
 }

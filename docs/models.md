@@ -140,6 +140,8 @@ erDiagram
 | `notebook_guides` | `notebook_id PK/FK`, `user_id`, `summary`, `topics jsonb`, `questions jsonb`, `source_fingerprint` | One row per notebook — `notebook_id` is the primary key, not a separate `id`. |
 | `audio_overviews` | `id`, `notebook_id`, `user_id`, `status`, `script jsonb`, `storage_path`, `duration_seconds` | No client insert/update policy — written by the server under the service role only; clients read and delete. |
 | `usage_events` | `id`, `user_id`, `kind`, `created_at` | Append-only, for rate limiting. No client insert policy — a client-writable one would let a user erase or fabricate their own usage. |
+| `user_activity` | `user_id PK/FK`, `last_seen_at` | One row per user, written only by the security-definer `touch_last_seen()`. No policies and no grants: the row *is* the claim "this user has been seen", so a client that could write it could keep itself from ever being deleted. |
+| `retention_state` | `user_id PK/FK`, `attempted_at` | One row per user, the last time the cleanup claimed them. Bookkeeping, not activity — separate from `user_activity` so recording an attempt never makes an idle user look active. No policies and, unusually, no grants at all: only `claim_retention_user()` and `list_retention_candidates()` read it, both security definer. |
 
 ## Demo notebook
 

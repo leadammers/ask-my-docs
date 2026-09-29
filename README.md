@@ -53,6 +53,8 @@ The live demo uses the **Gemini API free tier**. Under Google's terms for that t
 
 **Please do not upload confidential or sensitive documents.**
 
+Your notebooks are tied to an anonymous session in your browser. Anonymous users with no visit for **30 days** are deleted automatically, with all their notebooks, sources and files (daily cleanup job).
+
 ---
 
 ### 📄 License

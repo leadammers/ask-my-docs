@@ -118,6 +118,7 @@ Fetching user-supplied URLs from our server is a classic SSRF vector.
 - Server logs are structured JSON with `requestId`, `userId`, operation, timings and token counts. **Never log** document content, questions, answers, keys or tokens.
 - The Gemini free tier may use submitted content to improve Google's products. The UI shows this notice **before the first upload**; the README repeats it.
 - Collect nothing that isn't needed: no emails, no analytics, no tracking.
+- Anonymous users inactive for `RETENTION_DAYS` (30) are deleted by a daily cron job (`/api/cron/retention`, `CRON_SECRET` bearer): storage objects first, then the auth user (rows cascade). The UI states this in a first-visit banner and the footer.
 
 ---
 

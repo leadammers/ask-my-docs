@@ -303,6 +303,21 @@ export type Database = {
           },
         ]
       }
+      retention_state: {
+        Row: {
+          attempted_at: string
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sources: {
         Row: {
           char_count: number | null
@@ -383,11 +398,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity: {
+        Row: {
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      claim_retention_user: {
+        Args: {
+          p_inactive_before: string
+          p_retry_after: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      list_retention_candidates: {
+        Args: { p_inactive_before: string; p_limit: number }
+        Returns: {
+          is_anonymous: boolean
+          last_active_at: string
+          user_id: string
+        }[]
+      }
       match_chunks: {
         Args: {
           p_k?: number
@@ -417,6 +463,7 @@ export type Database = {
         }
         Returns: string
       }
+      touch_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
