@@ -13,6 +13,25 @@ type AdminClient = SupabaseClient<Database>;
 const BUCKETS = ['sources', 'audio'] as const;
 const LIST_PAGE_SIZE = 1000;
 
+/** The two steps that can fail for one user, named for the log line. */
+type RetentionOperation = 'remove_objects' | 'delete_user';
+
+/** A code short and plain enough to be a log field rather than free text. */
+const PLAIN_CODE = /^[A-Za-z0-9_-]{1,32}$/;
+
+/**
+ * Why a user could not be deleted, as a bounded code: the upstream's own code
+ * (on the error, or on the one it wraps) when it is a plain token. Never the
+ * error message — provider text is unbounded and not ours (security.md §12).
+ */
+function failureCode(error: unknown): string {
+  for (const candidate of [error, error instanceof Error ? error.cause : undefined] as unknown[]) {
+    const code = (candidate as { code?: unknown } | null)?.code;
+    if (typeof code === 'string' && PLAIN_CODE.test(code)) return code;
+  }
+  return 'unknown';
+}
+
 export type RetentionResult = {
   usersDeleted: number;
   usersFailed: number;
@@ -104,13 +123,26 @@ export async function runRetention({
 
   const result = { usersDeleted: 0, usersFailed: 0, objectsRemoved: 0 };
   for (const userId of userIds) {
+    // Tracked so the log line says which half of the pair has to be redone:
+    // leftovers from a failed `remove_objects` are what the next run finds.
+    let operation: RetentionOperation = 'remove_objects';
     try {
       result.objectsRemoved += await removeObjects(client, userId);
+      operation = 'delete_user';
       const { error } = await client.auth.admin.deleteUser(userId);
       if (error) throw new Error('Failed to delete user', { cause: error });
       result.usersDeleted += 1;
-    } catch {
+    } catch (error: unknown) {
       result.usersFailed += 1;
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          event: 'retention_user_failed',
+          userId,
+          operation,
+          code: failureCode(error),
+        }),
+      );
     }
   }
 
