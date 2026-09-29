@@ -26,5 +26,15 @@ drop policy chunks_insert_owner on chunks;
 drop policy chunks_update_owner on chunks;
 drop policy chunks_delete_owner on chunks;
 
+-- A row above the ceiling can only have come from a direct PostgREST insert:
+-- the route caps the question at CHAT_QUESTION_MAX_CHARS and the answer at
+-- CHAT_MAX_OUTPUT_TOKENS (~4k chars), both far below 20000. Left alone, one such
+-- row fails the ADD CONSTRAINT and blocks the whole migration, so the outliers
+-- are trimmed first and the constraint can then be added in one validating
+-- statement. (`NOT VALID` plus a later `VALIDATE CONSTRAINT` is the usual advice
+-- for a large table — here it would leave the constraint permanently
+-- unvalidated to avoid a scan of a table holding a handful of rows.)
+update messages set content = left(content, 20000) where char_length(content) > 20000;
+
 alter table messages
   add constraint messages_content_length check (char_length(content) <= 20000);
