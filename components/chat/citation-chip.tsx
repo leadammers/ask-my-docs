@@ -28,7 +28,11 @@ export function CitationChip({ citation, onOpen }: CitationChipProps): React.JSX
             {citation.sourceTitle}
             {pages ? `, ${pages}` : ''}
           </p>
-          <p className="text-muted-foreground italic">&ldquo;{citation.quote}&rdquo;</p>
+          {/* The stored quote is the whole cited sentence; the tooltip shows the
+              opening lines of it and the drawer shows the passage in full. */}
+          <p className="text-muted-foreground line-clamp-4 italic">
+            &ldquo;{citation.quote}&rdquo;
+          </p>
         </div>
       </TooltipContent>
     </Tooltip>

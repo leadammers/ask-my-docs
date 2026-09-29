@@ -1,3 +1,4 @@
+import { extractCitationQuote } from '@/lib/chat/quote';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
 import type { Citation } from '@/lib/chat/citations';
 
@@ -19,8 +20,10 @@ const SYSTEM_PROMPT = `You are a research assistant that answers questions using
  * Builds the citation map (n -> chunk) the model is shown, in retrieval order.
  * `available` in lib/chat/citations.ts's parseUsedCitations should be built
  * from this same list, so a cited [n] always resolves to a real chunk.
+ *
+ * `question` only picks the quoted passage; the model sees `chunk.content` in full.
  */
-export function buildCitationMap(chunks: RetrievedChunk[]): Citation[] {
+export function buildCitationMap(chunks: RetrievedChunk[], question: string): Citation[] {
   return chunks.map((chunk, index): Citation => ({
     n: index + 1,
     chunkId: chunk.chunkId,
@@ -28,7 +31,7 @@ export function buildCitationMap(chunks: RetrievedChunk[]): Citation[] {
     sourceTitle: chunk.sourceTitle,
     pageFrom: chunk.pageFrom,
     pageTo: chunk.pageTo,
-    quote: chunk.content.slice(0, 240),
+    quote: extractCitationQuote(chunk.content, question),
   }));
 }
 

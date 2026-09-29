@@ -145,7 +145,7 @@ export async function POST(request: Request): Promise<Response> {
     return createUIMessageStreamResponse({ stream });
   }
 
-  const citations = buildCitationMap(chunks);
+  const citations = buildCitationMap(chunks, question);
   const systemPrompt = buildSystemPrompt(citations, chunks);
   const modelMessages = [
     ...history.map((turn) => ({ role: turn.role, content: turn.text })),
