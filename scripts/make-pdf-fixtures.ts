@@ -86,6 +86,31 @@ const LEAK_PAGES: FixturePage[] = [
   },
 ];
 
+/**
+ * Content carries the mock provider's slow-answer trigger (lib/ai/mock.ts,
+ * MOCK_SLOW_TRIGGER) so e2e/workspace.spec.ts can ask this exact chunk text and
+ * get an answer that is still streaming when the test reaches for Stop.
+ */
+const SLOW_PAGES: FixturePage[] = [
+  {
+    lines: [
+      'BT /F1 12 Tf 14 TL 72 720 Td',
+      '(Slow Test Source) Tj',
+      'T*',
+      '(This document exists only to keep an answer streaming) Tj',
+      'T*',
+      '(The mock-slow-test marker appears here to trigger the long) Tj',
+      'T*',
+      '(reply that is still arriving when a test reaches for Stop) Tj',
+      'T*',
+      '(so that the stop button is never raced against its end) Tj',
+      'T*',
+      '(A final line keeps this page above the minimum length here) Tj',
+      'ET',
+    ],
+  },
+];
+
 /** Pads a line with spaces to LINE_WIDTH bytes, the newline included. */
 function line(text: string): string {
   if (text.length >= LINE_WIDTH) {
@@ -170,6 +195,7 @@ function main(): void {
     { name: 'sample.pdf', pages: SAMPLE_PAGES },
     { name: 'scanned.pdf', pages: SCANNED_PAGES },
     { name: 'leak.pdf', pages: LEAK_PAGES },
+    { name: 'slow.pdf', pages: SLOW_PAGES },
   ];
   for (const fixture of fixtures) {
     const pdf = buildPdf(fixture.pages);

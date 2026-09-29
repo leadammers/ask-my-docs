@@ -7,7 +7,28 @@ type Prompt = Parameters<MockLanguageModelV4['doStream']>[0]['prompt'];
 // Deterministic stand-ins for E2E tests and CI (AI_PROVIDER=mock). lib/env.ts
 // refuses this provider in Vercel production.
 
+/**
+ * Time between two streamed tokens. `simulateReadableStream` emits instantly by
+ * default, which makes the answer land in a single render: nothing can observe
+ * the stream while it is in flight, so streaming-only behaviour (the stop
+ * button, a tab switch mid-answer) is untestable and the mock never exercises
+ * the code path a real provider does. Ten tokens at this delay is about a
+ * second and a half — slow enough to observe, quick enough to not slow the
+ * suite down.
+ */
+const STREAM_CHUNK_DELAY_MS = 150;
+
 export const MOCK_ANSWER = 'According to your sources, this is a mock answer [1].';
+
+// A question containing this marker gets an answer an order of magnitude longer
+// than MOCK_ANSWER: about six seconds of streaming instead of one and a half.
+// The stop button only exists while a stream is in flight, so E2E can only click
+// it if something is still arriving — against the default answer a loaded CI
+// machine can lose that race between the first token appearing and the click.
+// See e2e/workspace.spec.ts.
+export const MOCK_SLOW_TRIGGER = 'mock-slow-test';
+export const MOCK_SLOW_ANSWER =
+  'According to the slow test source, this deliberately long answer keeps streaming so that the stop button is still on screen when the test clicks it, and the tokens keep coming for several seconds afterwards as well [1].';
 
 // A question containing this marker makes the mock model answer with an
 // injected image markdown link, so E2E can assert the client never turns it
@@ -27,7 +48,11 @@ function lastUserQuestion(prompt: Prompt): string {
 }
 
 function answerFor(prompt: Prompt): string {
-  return lastUserQuestion(prompt).includes(MOCK_LEAK_TRIGGER) ? MOCK_LEAK_ANSWER : MOCK_ANSWER;
+  const question = lastUserQuestion(prompt);
+
+  if (question.includes(MOCK_LEAK_TRIGGER)) return MOCK_LEAK_ANSWER;
+  if (question.includes(MOCK_SLOW_TRIGGER)) return MOCK_SLOW_ANSWER;
+  return MOCK_ANSWER;
 }
 
 function fnv1a(text: string): number {
@@ -85,6 +110,7 @@ export function mockChatModel(modelId: string): MockLanguageModelV4 {
       const answer = answerFor(prompt);
       return {
         stream: simulateReadableStream({
+          chunkDelayInMs: STREAM_CHUNK_DELAY_MS,
           chunks: [
             { type: 'text-start', id: 'text-1' },
             ...answer.split(/(?<= )/).map((delta) => ({

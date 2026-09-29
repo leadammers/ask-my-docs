@@ -14,6 +14,18 @@ export type Citation = z.infer<typeof citationSchema>;
 const CITATION_MARKER = /\[(\d+)\]/g;
 
 /**
+ * The one place a page range becomes user-facing text, so the citation chip and
+ * the citation drawer can never label the same chunk differently. `pageFrom` is
+ * null for sources without pages; an unknown `pageTo` reads as a single page
+ * rather than as the literal string "null".
+ */
+export function formatCitationPages(pageFrom: number | null, pageTo: number | null): string {
+  if (pageFrom === null) return '';
+  if (pageTo === null || pageTo === pageFrom) return `p. ${pageFrom}`;
+  return `p. ${pageFrom}-${pageTo}`;
+}
+
+/**
  * Extracts every `[n]` marker used in an answer, validated against the
  * citations actually offered to the model (`available`, keyed by n). Markers
  * for numbers outside that map are dropped: the model invented them, so

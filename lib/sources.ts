@@ -78,6 +78,21 @@ export function isStuckProcessing(updatedAt: Date, now: Date): boolean {
 }
 
 /**
+ * The chosen ids the next answer may actually use, in the order they were chosen.
+ * A selected source can leave `ready` — deleted, or sent back to processing by a
+ * retry — and until it is ready again its id must not be counted in the panel or
+ * sent as a `sourceIds` entry the retrieval can never match. The user's choice is
+ * kept rather than pruned, so a source that comes back is still selected.
+ */
+export function usableSourceIds(
+  selectedIds: readonly string[],
+  readyIds: readonly string[],
+): string[] {
+  const ready = new Set(readyIds);
+  return selectedIds.filter((sourceId) => ready.has(sourceId));
+}
+
+/**
  * Whether the UI offers Retry / the ingest route accepts a (re)claim: failed
  * sources, pending ones whose ingest never started, and processing ones stuck
  * past their own claim's budget.

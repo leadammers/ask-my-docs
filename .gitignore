@@ -41,6 +41,7 @@ Thumbs.db
 .debug-*.mjs
 .superpowers/
 agent-log.md
+/docs/ai-workflow.md
 
 # playwright auth state (holds a valid demo-gate cookie)
 playwright/.auth/

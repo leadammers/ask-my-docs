@@ -1,22 +1,24 @@
 'use client';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Citation } from '@/lib/chat/citations';
+import { formatCitationPages, type Citation } from '@/lib/chat/citations';
 
-type CitationChipProps = { citation: Citation };
+type CitationChipProps = {
+  citation: Citation;
+  /** Receives the chip itself, so the drawer can hand focus back to it on close. */
+  onOpen?: (citation: Citation, trigger: HTMLElement) => void;
+};
 
-function formatPages(pageFrom: number | null, pageTo: number | null): string {
-  if (pageFrom == null) return '';
-  return pageFrom === pageTo ? `p. ${pageFrom}` : `p. ${pageFrom}-${pageTo}`;
-}
+export function CitationChip({ citation, onOpen }: CitationChipProps): React.JSX.Element {
+  const pages = formatCitationPages(citation.pageFrom, citation.pageTo);
+  const label = `Citation ${citation.n}: ${citation.sourceTitle}${pages ? `, ${pages}` : ''}`;
 
-export function CitationChip({ citation }: CitationChipProps): React.JSX.Element {
-  const pages = formatPages(citation.pageFrom, citation.pageTo);
   return (
     <Tooltip>
       <TooltipTrigger
-        className="bg-muted text-muted-foreground mx-0.5 inline-flex size-4 -translate-y-0.5 items-center justify-center rounded-full text-[10px] font-medium"
-        aria-label={`Citation ${citation.n}: ${citation.sourceTitle}${pages ? `, ${pages}` : ''}`}
+        className="bg-muted text-muted-foreground hover:bg-accent focus-visible:ring-ring mx-0.5 inline-flex size-4 -translate-y-0.5 items-center justify-center rounded-full text-[10px] font-medium focus-visible:ring-2 focus-visible:outline-none"
+        aria-label={onOpen ? `${label}. Open the cited passage` : label}
+        onClick={onOpen ? (event) => onOpen(citation, event.currentTarget) : undefined}
       >
         {citation.n}
       </TooltipTrigger>
@@ -26,7 +28,11 @@ export function CitationChip({ citation }: CitationChipProps): React.JSX.Element
             {citation.sourceTitle}
             {pages ? `, ${pages}` : ''}
           </p>
-          <p className="text-muted-foreground italic">&ldquo;{citation.quote}&rdquo;</p>
+          {/* The stored quote is the whole cited sentence; the tooltip shows the
+              opening lines of it and the drawer shows the passage in full. */}
+          <p className="text-muted-foreground line-clamp-4 italic">
+            &ldquo;{citation.quote}&rdquo;
+          </p>
         </div>
       </TooltipContent>
     </Tooltip>

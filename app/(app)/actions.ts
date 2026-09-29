@@ -58,7 +58,10 @@ export async function renameNotebook(id: string, title: string): Promise<Result<
     .eq('id', parsedId.data);
   if (error) return fail('unexpected');
 
+  // `/` for the card, `/n/[id]` for the workspace's inline title editor, which
+  // has no optimistic copy and needs the server's new title to show through.
   revalidatePath('/');
+  revalidatePath(`/n/${parsedId.data}`);
   return ok(null);
 }
 

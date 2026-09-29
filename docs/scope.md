@@ -73,7 +73,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | 1 | Docker + accounts, scaffold, local schema, **live URL exists** | T00-T03 |
 | 2 | Provider layer + PDF ingestion | T04-T05 |
 | 3 | Retrieval + grounded chat with citations | T06-T07 |
-| 4 | Notebook UI polish → **MVP submittable** | T08, T08b (data retention + banner) |
+| 4 | Notebook UI polish → **MVP submittable** | T08, T08b (data retention + banner), T08c (demo seeding) |
 | 5 | Guide + more source types | T09-T10 |
 | 6 | Evaluation + hardening (guaranteed) | T13-T14 |
 | 7 | Notes, audio overview if time allows, README, Loom recording | T12, T11, T15 |

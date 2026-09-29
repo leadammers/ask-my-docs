@@ -11,10 +11,10 @@ Each notebook shows an auto-generated summary, key topics and 3-5 suggested ques
 ## Scope
 - `lib/studio/guide.ts`: map-reduce — per source, summarise the first ~N chunks (bounded token budget); then one `generateObject` call with Zod schema `{ summary: string, topics: {title, description}[] (3-6), questions: string[] (3-5) }`
 - Cache in `notebook_guides` with `source_fingerprint` (hash of sorted ready source ids); regenerate on demand when stale
-- Studio panel "Notebook guide" card: summary, topic chips (click → asks "Tell me about <topic>"), suggested questions (click → sends to chat)
+- Studio surface: the "Notebook guide" card in T08's drawer (its card seam), with summary, topic chips (click → asks "Tell me about <topic>"), suggested questions (click → sends to chat)
 - Suggested questions also appear in the empty chat state
 - Generate automatically after the first source becomes ready; "Regenerate" button when stale
-- Precompute the guide for the demo notebook in `seed-demo.ts`
+- Precompute the guide for the demo notebook in `seed-demo.ts` (the script from [T08c](T08c-demo-notebook.md))
 - Rate limit under `chat`, plus the global daily cap
 
 ## Acceptance criteria

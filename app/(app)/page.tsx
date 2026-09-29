@@ -1,5 +1,6 @@
 import { CreateNotebookDialog } from '@/components/create-notebook-dialog';
 import { NotebookCard } from '@/components/notebook-card';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function HomePage() {
@@ -40,7 +41,10 @@ export default async function HomePage() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Your notebooks</h1>
-        <CreateNotebookDialog />
+        <div className="flex items-center gap-2">
+          <CreateNotebookDialog />
+          <ThemeToggle />
+        </div>
       </div>
 
       {list.length === 0 ? (

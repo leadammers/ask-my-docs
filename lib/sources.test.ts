@@ -10,6 +10,7 @@ import {
   maxUploadBytes,
   sourceStoragePath,
   sourceTitleFromFileName,
+  usableSourceIds,
 } from '@/lib/sources';
 
 describe('sourceStoragePath', () => {
@@ -92,6 +93,25 @@ describe('isRetryable', () => {
   it('retries processing sources only once stuck', () => {
     expect(isRetryable('processing', now, new Date('2026-01-01T11:59:00.000Z'), now)).toBe(false);
     expect(isRetryable('processing', now, new Date('2026-01-01T11:53:00.000Z'), now)).toBe(true);
+  });
+});
+
+describe('usableSourceIds', () => {
+  it('keeps the chosen order of the ids that are still ready', () => {
+    expect(usableSourceIds(['source-b', 'source-a'], ['source-a', 'source-b'])).toEqual([
+      'source-b',
+      'source-a',
+    ]);
+  });
+
+  it('drops a selected source that is no longer ready', () => {
+    // Deleted, or sent back to processing by a retry: the choice is kept, but
+    // the id must not be sent to the chat, counted, or shown as checked.
+    expect(usableSourceIds(['source-a', 'source-b'], ['source-b'])).toEqual(['source-b']);
+  });
+
+  it('is empty when nothing selected is ready', () => {
+    expect(usableSourceIds(['source-a'], [])).toEqual([]);
   });
 });
 

@@ -135,3 +135,19 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Why:** RLS (`notebooks_insert_owner`) lets any signed-in user insert through the API directly, bypassing the server action — an app-only check would let one visitor create unlimited notebooks and fill the free-tier database. The advisory lock also closes the race where two parallel creates both pass the count.
 **Rejected:** app-only count-then-insert (bypassable, racy); a check constraint (can't count other rows); `SELECT … FOR UPDATE` (nothing to lock before the first notebook exists).
 **Consequence:** The limit lives in two places — `MAX_NOTEBOOKS_PER_USER` in `lib/config.ts` and the trigger — with comments pointing at each other. Covered by `supabase/tests/notebook_limit.test.sql`.
+
+## D-18 — Notebook workspace: two columns plus drawers, Studio is not a column
+**Date:** 2026-09-29 · **Status:** proposed
+
+**Decision:** The notebook page is two columns at ≥1024px (`sources | chat`) and `Tabs` below that. A citation opens a left-anchored modal drawer showing the quoted passage; Studio opens a sheet from the header. There is no permanent third column.
+**Why:** At 1280px a permanent third column squeezes the chat — the actual product — to roughly 520px while holding three placeholder cards until T09/T11/T12 land. A drawer gives Studio and the citation the width they need when open and costs nothing when closed, so the extras can arrive later without a layout rework. Both narrow-width `TabsPanel`s are kept mounted, so switching tabs mid-answer does not unmount `useChat` and lose a streaming answer.
+**Rejected:** copying NotebookLM's permanent third column (three empty cards for most of the build, chat squeezed); a `/n/[id]/studio` route (a page navigation for a panel, and the notebook's state would live in two places); a right-hand drawer for both (a citation would cover the answer it cites).
+**Consequence:** `components/workspace/` owns the layout, the source selection and both drawers; `components/ui/sheet.tsx` is a side-anchored dialog built on the already-installed `@base-ui/react`, not on a shadcn registry entry that would pull in a second primitive family. T09/T11/T12 fill the Studio cards' bodies without touching the shell.
+
+## D-19 — Dark mode via the already-installed next-themes, following the system
+**Date:** 2026-09-29 · **Status:** proposed
+
+**Decision:** Dark mode uses `next-themes` with `attribute="class"`, `defaultTheme="system"` and `enableSystem`, mounted once in `app/layout.tsx`. One shared `ThemeToggle` sits in each page's existing header row; `/demo-login` has none.
+**Why:** `next-themes@0.4.6` was already a direct dependency and `components/ui/sonner.tsx` already called `useTheme()` — with no provider mounted, so that call returned `undefined` and the toaster could never follow the theme. Mounting the provider wires up the feature and fixes that latent bug in one change, with nothing new to install. The `.dark` palette already existed in `globals.css`, so the work was a toggle and an audit across both themes, not a second design.
+**Rejected:** a hand-rolled class toggle plus pre-hydration script (re-implements the library, and gets the flash wrong); `prefers-color-scheme` alone with no toggle (no user choice); defaulting to a fixed light or dark (wrong for somebody on first paint either way).
+**Consequence:** Both themes are part of the axe and visual checks from here on, and `sonner.tsx`'s theme now tracks the toggle. `color-scheme` is declared per theme in `globals.css` so native controls (scrollbars, the composer) match.
