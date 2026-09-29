@@ -182,7 +182,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Runtime surface of the deployed app. This is what actually ships.
-      - name: Audit production dependencies
+      - name: Audit prod dependencies
         run: pnpm audit --prod --audit-level=high
 
       # Full tree including devDependencies (build/test tooling).
@@ -223,12 +223,12 @@ jobs:
           url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-  deploy-production:
+  deploy-prod:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [build, test, db-test, e2e, security]
     environment:
-      name: production
+      name: prod
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -243,13 +243,16 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@60.0.1 --ignore-scripts
 
+      # Deliberately not aligned with the GitHub environment above: `--environment`
+      # names a *Vercel* environment (production | preview | development), and Vercel's
+      # is `production` whatever the GitHub environment is called.
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy production
+      - name: Deploy prod
         id: deploy
         run: |
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
