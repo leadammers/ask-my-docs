@@ -40,9 +40,12 @@ grant select, insert, update, delete on demo_entitlements to service_role;
 -- a table `authenticated` has no privileges on. It leaks nothing: the caller
 -- learns only a fact about themselves.
 --
--- Called once per row by the demo select policies. The lookup is a primary-key
--- scan on a table with one row per visitor who entered the password, so the
--- per-row cost is a single index probe.
+-- The policies below call it as `(select public.is_demo_entitled())`, not bare:
+-- a bare call to a `stable` function is re-evaluated for every row the policy
+-- tests, whereas the uncorrelated subquery lets the planner hoist it into an
+-- InitPlan and evaluate it once per query — the same reason the owner policies
+-- write `(select auth.uid())`. Worth having even though the lookup is only a
+-- primary-key probe: a policy is on the hot path of every chat read.
 -- ---------------------------------------------------------------------------
 create function public.is_demo_entitled()
 returns boolean
@@ -86,13 +89,21 @@ drop policy notebooks_select_demo on notebooks;
 create policy notebooks_select_demo
   on notebooks for select
   to authenticated
-  using (is_demo = true and user_id = (select demo_owner_id from app_settings) and public.is_demo_entitled());
+  using (
+    is_demo = true
+    and user_id = (select demo_owner_id from app_settings)
+    and (select public.is_demo_entitled())
+  );
 
 drop policy notebooks_insert_owner on notebooks;
 create policy notebooks_insert_owner
   on notebooks for insert
   to authenticated
-  with check (user_id = (select auth.uid()) and is_demo = false and public.is_demo_entitled());
+  with check (
+    user_id = (select auth.uid())
+    and is_demo = false
+    and (select public.is_demo_entitled())
+  );
 
 drop policy sources_select_demo on sources;
 create policy sources_select_demo
@@ -101,7 +112,7 @@ create policy sources_select_demo
   using (
     user_id = (select demo_owner_id from app_settings)
     and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = true)
-    and public.is_demo_entitled()
+    and (select public.is_demo_entitled())
   );
 
 drop policy chunks_select_demo on chunks;
@@ -111,7 +122,7 @@ create policy chunks_select_demo
   using (
     user_id = (select demo_owner_id from app_settings)
     and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = true)
-    and public.is_demo_entitled()
+    and (select public.is_demo_entitled())
   );
 
 drop policy notebook_guides_select_demo on notebook_guides;
@@ -121,7 +132,7 @@ create policy notebook_guides_select_demo
   using (
     user_id = (select demo_owner_id from app_settings)
     and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = true)
-    and public.is_demo_entitled()
+    and (select public.is_demo_entitled())
   );
 
 drop policy audio_overviews_select_demo on audio_overviews;
@@ -131,7 +142,7 @@ create policy audio_overviews_select_demo
   using (
     user_id = (select demo_owner_id from app_settings)
     and exists (select 1 from notebooks n where n.id = notebook_id and n.is_demo = true)
-    and public.is_demo_entitled()
+    and (select public.is_demo_entitled())
   );
 
 drop policy messages_insert_owner on messages;
@@ -148,7 +159,7 @@ create policy messages_insert_owner
           or (
             n.is_demo = true
             and n.user_id = (select demo_owner_id from app_settings)
-            and public.is_demo_entitled()
+            and (select public.is_demo_entitled())
           )
         )
     )
@@ -158,10 +169,18 @@ drop policy sources_bucket_select_demo on storage.objects;
 create policy sources_bucket_select_demo
   on storage.objects for select
   to authenticated
-  using (bucket_id = 'sources' and (storage.foldername(name))[1] = 'demo' and public.is_demo_entitled());
+  using (
+    bucket_id = 'sources'
+    and (storage.foldername(name))[1] = 'demo'
+    and (select public.is_demo_entitled())
+  );
 
 drop policy audio_bucket_select_demo on storage.objects;
 create policy audio_bucket_select_demo
   on storage.objects for select
   to authenticated
-  using (bucket_id = 'audio' and (storage.foldername(name))[1] = 'demo' and public.is_demo_entitled());
+  using (
+    bucket_id = 'audio'
+    and (storage.foldername(name))[1] = 'demo'
+    and (select public.is_demo_entitled())
+  );
