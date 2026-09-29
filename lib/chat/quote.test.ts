@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCitationMap } from '@/lib/chat/prompt';
+import { buildCitationMap } from '@/lib/chat/prompts';
 import { extractCitationQuote } from '@/lib/chat/quote';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
 

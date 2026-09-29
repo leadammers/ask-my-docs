@@ -34,6 +34,17 @@ describe('toErrorResponse', () => {
     });
   });
 
+  it('maps too_much_text to 422 with a message that names the limit', (): void => {
+    // Shown on the source row, so it has to read like the other content limits
+    // (too_many_pages, scanned_pdf) rather than like an unexpected failure.
+    expect(toErrorResponse(new AppError('too_much_text'))).toEqual({
+      status: 422,
+      code: 'too_much_text',
+      userMessage: userMessage('too_much_text'),
+    });
+    expect(userMessage('too_much_text')).not.toBe(userMessage('unexpected'));
+  });
+
   it('maps an unknown AppError-unrelated Error to 500 unexpected with a generic message', (): void => {
     const response = toErrorResponse(new Error('database connection to 10.0.0.5 failed'));
 
