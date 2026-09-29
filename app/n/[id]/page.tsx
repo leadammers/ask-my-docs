@@ -122,7 +122,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
   // A bounded shell: the workspace fills the viewport and each column scrolls on
   // its own, instead of the whole page scrolling under a fixed-height chat pane.
   return (
-    <main className="mx-auto flex h-dvh w-full max-w-5xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto flex h-dvh w-full max-w-7xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8">
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="ghost"

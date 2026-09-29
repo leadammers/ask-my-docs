@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** The workspace's own shape while the notebook, its sources and its history load. */
 export default function NotebookLoading() {
   return (
-    <main className="mx-auto flex h-dvh w-full max-w-5xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto flex h-dvh w-full max-w-7xl flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-2">
         <Skeleton className="size-8 rounded-md" />
         <Skeleton className="h-8 w-56" />
