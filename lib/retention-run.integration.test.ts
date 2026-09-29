@@ -1,7 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RETENTION_DAYS } from '@/lib/config';
-import { removeUserObjects, runRetention, type RetentionResult } from '@/lib/retention-run';
+import {
+  claimRetentionUser,
+  removeUserObjects,
+  runRetention,
+  type RetentionResult,
+} from '@/lib/retention-run';
 import type { Database } from '@/lib/supabase/types';
 
 // Runs against the local Supabase stack (see vitest.integration.config.ts).
@@ -107,6 +112,15 @@ describe('retention cleanup against the local stack', () => {
   });
 
   afterAll(async (): Promise<void> => {
+    // Put back what was there. `maybeSingle()` returning null means there was no
+    // row at all, so upserting one would leave app_settings populated forever —
+    // which breaks rls.test.sql, whose own `insert into app_settings` then trips
+    // the primary key on every later `pnpm db:test`.
+    if (previousDemoOwner === null) {
+      const { error } = await admin.from('app_settings').delete().eq('id', true);
+      if (error) throw error;
+      return;
+    }
     await admin.from('app_settings').upsert({ id: true, demo_owner_id: previousDemoOwner });
   });
 
@@ -168,5 +182,72 @@ describe('touch_last_seen against the local stack', () => {
       .from('user_activity')
       .insert({ user_id: user.id, last_seen_at: new Date(Date.now() + 1e10).toISOString() });
     expect(error?.code).toBe('42501');
+  });
+});
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+describe('the retention claim against the local stack', () => {
+  // The cutoff sits a moment after sign-in: the user counts as stale, and
+  // anything they do from then on is more recent than it. The pause makes that
+  // ordering real rather than a race — `touch_last_seen` writes `now()`.
+  const STALE_AFTER_MS = 500;
+  const VISIT_DELAY_MS = 1500;
+
+  async function staleUser(): Promise<{ user: TestUser; cutoff: string }> {
+    const user = await signInAnonymously();
+    const cutoff = new Date(user.createdAt.getTime() + STALE_AFTER_MS).toISOString();
+    await sleep(VISIT_DELAY_MS);
+    return { user, cutoff };
+  }
+
+  it('grants the claim once, then refuses a second run', async (): Promise<void> => {
+    const { user, cutoff } = await staleUser();
+
+    expect(await claimRetentionUser(admin, user.id, cutoff)).toBe(true);
+    // Inside RETENTION_RETRY_AFTER the claim is not refreshed, so an
+    // overlapping or retried run cannot work on the same user.
+    expect(await claimRetentionUser(admin, user.id, cutoff)).toBe(false);
+  });
+
+  it('refuses a user who visited after the candidate query', async (): Promise<void> => {
+    const { user, cutoff } = await staleUser();
+
+    await user.client.rpc('touch_last_seen');
+
+    expect(await claimRetentionUser(admin, user.id, cutoff)).toBe(false);
+  });
+});
+
+describe('a visit that lands between selection and the claim', () => {
+  it('skips the user and leaves their files and rows alone', async (): Promise<void> => {
+    const returning = await signInAnonymously();
+    await addDataFor(returning);
+
+    // `returning` is a candidate at this cutoff and stopped being one at the
+    // visiting moment inside the run below.
+    const now = new Date(returning.createdAt.getTime() + RETENTION_DAYS * DAY_MS + 1000);
+    await sleep(1500);
+
+    const attempted: string[] = [];
+    const result = await runRetention({
+      client: admin,
+      now,
+      claimUser: async (client, userId, inactiveBefore): Promise<boolean> => {
+        attempted.push(userId);
+        // The visit is the real one; only its timing is arranged. The claim
+        // below therefore has to refuse on the strength of its own re-check.
+        if (userId === returning.id) await returning.client.rpc('touch_last_seen');
+        return claimRetentionUser(client, userId, inactiveBefore);
+      },
+    });
+
+    // Without this the test could pass because the user was never a candidate
+    // in the first place — a batch is only RETENTION_BATCH_SIZE wide.
+    expect(attempted).toContain(returning.id);
+    expect(result.usersSkipped).toBeGreaterThanOrEqual(1);
+    expect(await userExists(returning.id)).toBe(true);
+    expect(await notebookCount(returning.id)).toBe(1);
+    expect(await objectCount(returning.id)).toBe(2);
   });
 });

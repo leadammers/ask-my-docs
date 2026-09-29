@@ -30,5 +30,13 @@ export const SOURCE_TITLE_MAX_LENGTH = 200;
 export const RETENTION_DAYS = 30;
 /** Users deleted per cron run at most; the next daily run continues. */
 export const RETENTION_BATCH_SIZE = 100;
+/**
+ * How long a claimed user is left alone before another attempt. Shorter than
+ * the cron interval (daily), so a user whose cleanup failed is retried on the
+ * next run instead of being blocked for a day; far longer than the route's
+ * maxDuration, so an overlapping or retried run cannot pick up a user whose
+ * files are already being removed.
+ */
+export const RETENTION_RETRY_AFTER = '20 hours';
 /** Cookie that marks "last_seen_at already touched today" for this browser. */
 export const LAST_SEEN_COOKIE = 'last_seen_touch';

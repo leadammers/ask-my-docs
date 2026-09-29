@@ -1,6 +1,6 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RETENTION_BATCH_SIZE, RETENTION_DAYS } from '@/lib/config';
+import { RETENTION_BATCH_SIZE, RETENTION_DAYS, RETENTION_RETRY_AFTER } from '@/lib/config';
 import { retentionCutoff, selectUsersToDelete, type RetentionCandidate } from '@/lib/retention';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/types';
@@ -13,8 +13,8 @@ type AdminClient = SupabaseClient<Database>;
 const BUCKETS = ['sources', 'audio'] as const;
 const LIST_PAGE_SIZE = 1000;
 
-/** The two steps that can fail for one user, named for the log line. */
-type RetentionOperation = 'remove_objects' | 'delete_user';
+/** The steps that can fail for one user, named for the log line. */
+type RetentionOperation = 'claim' | 'remove_objects' | 'delete_user';
 
 /** A code short and plain enough to be a log field rather than free text. */
 const PLAIN_CODE = /^[A-Za-z0-9_-]{1,32}$/;
@@ -34,7 +34,10 @@ function failureCode(error: unknown): string {
 
 export type RetentionResult = {
   usersDeleted: number;
+  /** Claimed, but a later step failed; the next run retries them. */
   usersFailed: number;
+  /** No longer eligible, or claimed by an overlapping run. Left untouched. */
+  usersSkipped: number;
   objectsRemoved: number;
   durationMs: number;
 };
@@ -74,9 +77,12 @@ export async function removeUserObjects(client: AdminClient, userId: string): Pr
   return removed;
 }
 
-async function loadCandidates(client: AdminClient, now: Date): Promise<RetentionCandidate[]> {
+async function loadCandidates(
+  client: AdminClient,
+  inactiveBefore: string,
+): Promise<RetentionCandidate[]> {
   const { data, error } = await client.rpc('list_retention_candidates', {
-    p_inactive_before: retentionCutoff(now, RETENTION_DAYS).toISOString(),
+    p_inactive_before: inactiveBefore,
     p_limit: RETENTION_BATCH_SIZE,
   });
   if (error) throw new Error('Failed to list retention candidates', { cause: error });
@@ -85,6 +91,25 @@ async function loadCandidates(client: AdminClient, now: Date): Promise<Retention
     isAnonymous: row.is_anonymous,
     lastActiveAt: new Date(row.last_active_at),
   }));
+}
+
+/**
+ * Takes exclusive ownership of one user's deletion, or refuses. The database
+ * settles both questions in one statement (migration 20260929091941): still
+ * stale and anonymous, and not already claimed by an overlapping run.
+ */
+export async function claimRetentionUser(
+  client: AdminClient,
+  userId: string,
+  inactiveBefore: string,
+): Promise<boolean> {
+  const { data, error } = await client.rpc('claim_retention_user', {
+    p_user_id: userId,
+    p_inactive_before: inactiveBefore,
+    p_retry_after: RETENTION_RETRY_AFTER,
+  });
+  if (error) throw new Error('Failed to claim retention user', { cause: error });
+  return data;
 }
 
 async function loadDemoOwnerId(client: AdminClient): Promise<string | null> {
@@ -96,23 +121,31 @@ async function loadDemoOwnerId(client: AdminClient): Promise<string | null> {
 type Deps = {
   client?: AdminClient;
   now?: Date;
+  claimUser?: (client: AdminClient, userId: string, inactiveBefore: string) => Promise<boolean>;
   removeObjects?: (client: AdminClient, userId: string) => Promise<number>;
 };
 
 /**
  * Deletes anonymous users inactive for more than RETENTION_DAYS: their storage
- * objects first, then the auth user (the FK cascade removes their rows). If a
- * user's objects can't be removed, the user is skipped and counted as failed —
- * they stay eligible and the next run retries, so rows never outlive files.
+ * objects first, then the auth user (the FK cascade removes their rows). Each
+ * user is claimed before anything is touched, so a visit that arrived since the
+ * candidate query saves them. If a user's objects can't be removed, the user is
+ * counted as failed and stays eligible — the next run retries, so rows never
+ * outlive files.
  */
 export async function runRetention({
   client = createAdminClient(),
   now = new Date(),
+  claimUser = claimRetentionUser,
   removeObjects = removeUserObjects,
 }: Deps = {}): Promise<RetentionResult> {
   const startedAt = Date.now();
+  // One cutoff for the whole run: the candidate query and every claim judge
+  // against the same instant, so "listed but refused" means the user moved, not
+  // that the clock ticked over mid-run.
+  const inactiveBefore = retentionCutoff(now, RETENTION_DAYS).toISOString();
   const [candidates, demoOwnerId] = await Promise.all([
-    loadCandidates(client, now),
+    loadCandidates(client, inactiveBefore),
     loadDemoOwnerId(client),
   ]);
   const userIds = selectUsersToDelete(candidates, {
@@ -121,12 +154,19 @@ export async function runRetention({
     demoOwnerId,
   });
 
-  const result = { usersDeleted: 0, usersFailed: 0, objectsRemoved: 0 };
+  const result = { usersDeleted: 0, usersFailed: 0, usersSkipped: 0, objectsRemoved: 0 };
   for (const userId of userIds) {
     // Tracked so the log line says which half of the pair has to be redone:
     // leftovers from a failed `remove_objects` are what the next run finds.
-    let operation: RetentionOperation = 'remove_objects';
+    let operation: RetentionOperation = 'claim';
     try {
+      // A refused claim is not a failure: the user visited since the query, or
+      // another run owns them. Either way, nothing of theirs is touched.
+      if (!(await claimUser(client, userId, inactiveBefore))) {
+        result.usersSkipped += 1;
+        continue;
+      }
+      operation = 'remove_objects';
       result.objectsRemoved += await removeObjects(client, userId);
       operation = 'delete_user';
       const { error } = await client.auth.admin.deleteUser(userId);
