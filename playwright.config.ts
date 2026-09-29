@@ -47,7 +47,11 @@ export default defineConfig({
   webServer: {
     command: process.env.CI ? 'pnpm build && pnpm start' : 'pnpm dev',
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    // Whatever answers on :3000 locally is usually `pnpm dev`, which reads
+    // .env.local — a different AI provider and demo password than the test
+    // session assumes, so the run fails later, somewhere confusing. Fail at
+    // startup instead: stop `pnpm dev` before `pnpm test:e2e`.
+    reuseExistingServer: false,
     env: process.env.CI ? { SKIP_ENV_VALIDATION: '1' } : {},
     timeout: 120_000,
   },

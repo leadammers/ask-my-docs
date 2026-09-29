@@ -34,7 +34,8 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm test:e2e      # needs the local stack (pnpm db:start) and .env.test.local (copy .env.test.example)
+pnpm test:e2e      # needs the local stack (pnpm db:start), .env.test.local (copy .env.test.example)
+                   # and port 3000 free — stop `pnpm dev` first, the run fails if it isn't
 ```
 
 Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), commit-msg runs commitlint (Conventional Commits, `commitlint.config.mjs`), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.

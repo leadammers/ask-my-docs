@@ -202,9 +202,10 @@ jobs:
       name: preview
       url: ${{ steps.deploy.outputs.url }}
     steps:
+      # Default ref: for a `pull_request` event that is the merge commit the
+      # `needs:` jobs above validated. Not `github.head_ref`, which is the
+      # branch tip and can move between their run and this build.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          ref: ${{ github.head_ref }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
