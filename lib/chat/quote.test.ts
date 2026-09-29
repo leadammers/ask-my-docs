@@ -14,6 +14,16 @@ const TAIL = 'Outlook remains cautious for the coming year.';
 
 const CHUNK = `${OPENING} ${CONTEXT}\n\n${RELEVANT} ${AFTER}\n\n${TAIL}`;
 
+/** The header block a PDF page carries, in front of the prose that answers questions. */
+const TITLED = [
+  'Synthetic Biology Sector',
+  'Document ID: ISBR-2026-VOL2',
+  'Author: Bio-Engineering Global Insights Group',
+  '1. Introduction to Synthetic Biology',
+  '',
+  'Engineered organisms are grown in closed bioreactors. The EU regulates deliberate release under Directive 2001/18.',
+].join('\n');
+
 function chunkWith(content: string): RetrievedChunk {
   return {
     chunkId: 'chunk-1',
@@ -41,8 +51,55 @@ describe('extractCitationQuote', () => {
     expect(extractCitationQuote(longSentence, 'gamma')).toBe(longSentence);
   });
 
-  it('starts at the top of the chunk when the question matches nothing in it', () => {
-    expect(extractCitationQuote(CHUNK, 'Wer gewann die Fussballweltmeisterschaft?')).toBe(OPENING);
+  it('quotes the first body sentence when the question matches nothing in the chunk', () => {
+    // The header block and the section heading are not sentence candidates; without
+    // that, a question sharing no term with the chunk quotes the document title.
+    expect(extractCitationQuote(TITLED, 'Wer gewann die Fussballweltmeisterschaft?')).toBe(
+      'Engineered organisms are grown in closed bioreactors.',
+    );
+  });
+
+  it('matches a query word only where it stands as a whole word', () => {
+    const content =
+      'Neurobiology reshapes the field.\n\nBiology is regulated by the EU under Directive 2001/18.';
+
+    // "biology" is a substring of "Neurobiology" but not a word of it.
+    expect(extractCitationQuote(content, 'What does biology regulation cover?')).toBe(
+      'Biology is regulated by the EU under Directive 2001/18.',
+    );
+  });
+
+  it('ignores query words that nearly every sentence of the chunk shares', () => {
+    const content = [
+      'The framework is broad.',
+      'The scope is narrow.',
+      'The EU coordinates the response.',
+      'The budget is set annually.',
+    ].join('\n\n');
+
+    // "the" and "is" carry no signal here — every sentence has them, so without the
+    // frequency filter the earliest sentence wins the tie and the answer is missed.
+    expect(extractCitationQuote(content, "What is the EU's role?")).toBe(
+      'The EU coordinates the response.',
+    );
+  });
+
+  it('does not end a sentence at a section number', () => {
+    // "1." opens a heading line; a boundary scan that trusted the "." ends a
+    // sentence there and hands the header block to the citation as its quote.
+    expect(extractCitationQuote(TITLED, 'How is the EU involved?')).toBe(
+      'The EU regulates deliberate release under Directive 2001/18.',
+    );
+  });
+
+  it('does not quote the sentence fragment a chunk starts with', () => {
+    // Chunks overlap, so a chunk can open with the tail of a sentence from the one
+    // before it — a passage that never stands on its own.
+    const content = 'regulations in the EU. The framework does not name a coordinator.';
+
+    expect(extractCitationQuote(content, 'How is the EU involved?')).toBe(
+      'The framework does not name a coordinator.',
+    );
   });
 
   it('does not stop at an abbreviation that ends no sentence', () => {
