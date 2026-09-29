@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type ErrorCode =
   | 'unauthorized'
   | 'not_found'
@@ -11,6 +13,7 @@ export type ErrorCode =
   | 'invalid_pdf'
   | 'scanned_pdf'
   | 'too_many_pages'
+  | 'too_much_text'
   | 'no_text'
   | 'already_processing'
   | 'unexpected';
@@ -28,6 +31,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   invalid_pdf: "That file isn't a valid PDF.",
   scanned_pdf: 'This PDF has no extractable text (scanned?). OCR is not supported.',
   too_many_pages: 'That PDF has too many pages for this demo.',
+  too_much_text: 'That source has too much text for this demo.',
   no_text: "We couldn't find any usable text in that source.",
   already_processing: 'This source is already being processed.',
   unexpected: 'Something went wrong. Please try again.',
@@ -46,6 +50,7 @@ const STATUS: Record<ErrorCode, number> = {
   invalid_pdf: 422,
   scanned_pdf: 422,
   too_many_pages: 422,
+  too_much_text: 422,
   no_text: 422,
   already_processing: 409,
   unexpected: 500,
@@ -93,4 +98,34 @@ export type ErrorResponse = { status: number; code: ErrorCode; userMessage: stri
 export function toErrorResponse(error: unknown): ErrorResponse {
   const code: ErrorCode = error instanceof AppError ? error.code : 'unexpected';
   return { status: STATUS[code], code, userMessage: MESSAGES[code] };
+}
+
+/** The body a route sends on failure; `apiErrorMessage` reads it back on the client. */
+export function errorResponse(code: ErrorCode): Response {
+  const { status, userMessage: message } = toErrorResponse(new AppError(code));
+  return Response.json({ error: { code, message } }, { status });
+}
+
+const apiErrorBodySchema = z.object({ error: z.object({ message: z.string().min(1) }) });
+
+/**
+ * Recovers the user-facing message from a failed API call on the client.
+ *
+ * The AI SDK's transport turns a non-OK response into an error whose `message`
+ * is the response body **verbatim** (`message: responseBody` in
+ * `createUIApiCallError`), so a toast would otherwise show the raw JSON of
+ * `errorResponse` above. Anything that is not that shape — a network failure,
+ * a proxy's HTML error page — yields `null`, and the caller falls back to
+ * `userMessage('unexpected')`.
+ */
+export function apiErrorMessage(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  let body: unknown;
+  try {
+    body = JSON.parse(error.message);
+  } catch {
+    return null;
+  }
+  const parsed = apiErrorBodySchema.safeParse(body);
+  return parsed.success ? parsed.data.error.message : null;
 }

@@ -18,7 +18,7 @@ select table_privs_are('public', 'sources', 'authenticated', array['SELECT', 'IN
 select table_privs_are('public', 'sources', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on sources');
 
 select table_privs_are('public', 'chunks', 'anon', array[]::text[], 'anon has no privileges on chunks');
-select table_privs_are('public', 'chunks', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated has full DML on chunks');
+select table_privs_are('public', 'chunks', 'authenticated', array['SELECT'], 'authenticated can only select chunks — the ingest pipeline writes them under the service role');
 select table_privs_are('public', 'chunks', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on chunks');
 
 select table_privs_are('public', 'messages', 'anon', array[]::text[], 'anon has no privileges on messages');

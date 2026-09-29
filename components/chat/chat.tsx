@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import type { Citation } from '@/lib/chat/citations';
-import { userMessage } from '@/lib/errors';
+import { apiErrorMessage, userMessage } from '@/lib/errors';
 
 type ChatMessage = UIMessage<unknown, { citations: Citation[] }>;
 
@@ -92,8 +92,10 @@ export function Chat({
     messages: initialMessages,
     // `notebookId` rides on every request; the selection is per-send (see `send`).
     transport: new DefaultChatTransport({ api: '/api/chat', body: { notebookId } }),
+    // The transport hands back the raw response body as the error message, so
+    // unwrap our `{ error: { message } }` shape instead of showing it as JSON.
     onError: (chatError) => {
-      toast.error(chatError.message || 'Something went wrong. Please try again.');
+      toast.error(apiErrorMessage(chatError) ?? userMessage('unexpected'));
     },
   });
 

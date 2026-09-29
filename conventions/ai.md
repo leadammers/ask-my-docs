@@ -6,6 +6,7 @@
 - **Model IDs, provider and dimensions come from env** (`lib/env.ts`). Code never contains a model name.
 - Every call is wrapped in `withRetry` (backoff on 429/503) and preceded by the rate-limit and global-cap checks (`security.md` §7).
 - Every call sets `maxOutputTokens`. Every call's token usage and duration is logged via `lib/ai/usage.ts` — sizes and counts only, never content.
+- **Inputs are bounded, not just outputs.** Anything assembled from user-supplied content — extracted text, context blocks — has a named ceiling in `lib/config.ts` and exactly one check that owns it (`MAX_EXTRACTED_CHARS` in `runIngest`, `CHAT_MAX_CONTEXT_CHARS` in `buildSystemPrompt`). A bound is a fact, so it has one home: a second copy in an adapter or a route is drift waiting to happen.
 
 ## Prompts
 

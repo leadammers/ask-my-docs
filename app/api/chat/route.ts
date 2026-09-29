@@ -10,13 +10,14 @@ import {
   buildSystemPrompt,
   HISTORY_TURNS,
   NO_CONTEXT_ANSWER,
+  PROMPT_VERSION,
   recentHistory,
-} from '@/lib/chat/prompt';
+} from '@/lib/chat/prompts';
 import { parseUsedCitations } from '@/lib/chat/citations';
 import { chatRequestSchema, extractQuestion } from '@/lib/chat/request';
 import { CHAT_MAX_OUTPUT_TOKENS, CHAT_QUESTION_MAX_CHARS } from '@/lib/config';
 import { env } from '@/lib/env';
-import { AppError, toErrorResponse, userMessage, type ErrorCode } from '@/lib/errors';
+import { errorResponse, toErrorResponse, userMessage } from '@/lib/errors';
 import { assertAiAllowed } from '@/lib/rate-limit';
 import { retrieve } from '@/lib/retrieval/search';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -62,11 +63,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     await assertAiAllowed(user.id, 'chat', env.RATE_LIMIT_CHAT_PER_MIN, CHAT_WINDOW_SECONDS);
   } catch (error: unknown) {
-    const response = toErrorResponse(error);
-    return Response.json(
-      { error: { code: response.code, message: response.userMessage } },
-      { status: response.status },
-    );
+    return errorResponse(toErrorResponse(error).code);
   }
 
   const { data: historyRows, error: historyError } = await supabase
@@ -92,11 +89,7 @@ export async function POST(request: Request): Promise<Response> {
       { requestId, userId: user.id },
     );
   } catch (error: unknown) {
-    const response = toErrorResponse(error);
-    return Response.json(
-      { error: { code: response.code, message: response.userMessage } },
-      { status: response.status },
-    );
+    return errorResponse(toErrorResponse(error).code);
   }
   const { chunks, hasRelevantContext } = retrieved;
 
@@ -146,7 +139,23 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const citations = buildCitationMap(chunks, question);
-  const systemPrompt = buildSystemPrompt(citations, chunks);
+  // Only the blocks the prompt actually carries may be cited back — see
+  // buildSystemPrompt (20260929 review). It takes the question too, because a
+  // block the budget cuts short is re-quoted from the part the model read.
+  const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks, question);
+  // Which prompt answered this request, so an answer reported later can be
+  // traced back to it (conventions/ai.md, "Prompts"). No content, like every
+  // other line (security.md §12).
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      event: 'chat_prompt',
+      requestId,
+      userId: user.id,
+      promptVersion: PROMPT_VERSION,
+    }),
+  );
+
   const modelMessages = [
     ...history.map((turn) => ({ role: turn.role, content: turn.text })),
     { role: 'user' as const, content: question },
@@ -158,7 +167,7 @@ export async function POST(request: Request): Promise<Response> {
     messages: modelMessages,
     maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
     onFinish: async (event) => {
-      const usedCitations = parseUsedCitations(event.text, citations);
+      const usedCitations = parseUsedCitations(event.text, includedCitations);
       const { error } = await admin.from('messages').insert({
         notebook_id: notebook.id,
         user_id: user.id,
@@ -195,7 +204,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
-      writer.write({ type: 'data-citations', id: 'citations', data: citations });
+      writer.write({ type: 'data-citations', id: 'citations', data: includedCitations });
       writer.merge(toUIMessageStream({ stream: result.fullStream }));
     },
     // Never forward raw provider error text to the client (security.md §12).
@@ -203,9 +212,4 @@ export async function POST(request: Request): Promise<Response> {
   });
 
   return createUIMessageStreamResponse({ stream });
-}
-
-function errorResponse(code: ErrorCode): Response {
-  const { status } = toErrorResponse(new AppError(code));
-  return Response.json({ error: { code, message: userMessage(code) } }, { status });
 }

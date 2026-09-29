@@ -34,11 +34,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git restore:*)",
-      "Bash(git push *)",
-      "Bash(git rebase *)",
       "Bash(docker ps:*)",
       "Read(./**)"
     ],
+    "ask": ["Bash(git push *)", "Bash(git rebase *)"],
     "deny": [
       "Bash(git reset --hard:*)",
       "Bash(git checkout main:*)",

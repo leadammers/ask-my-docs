@@ -1,7 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { embedDocuments, toBatches, type AiCallContext } from '@/lib/ai/embeddings';
-import { CHUNK_INSERT_BATCH_SIZE, EMBED_BATCH_SIZE } from '@/lib/config';
+import { CHUNK_INSERT_BATCH_SIZE, EMBED_BATCH_SIZE, MAX_EXTRACTED_CHARS } from '@/lib/config';
 import { AppError, userMessage, type ErrorCode } from '@/lib/errors';
 import { chunkPages } from '@/lib/ingest/chunk';
 import type { Chunk, PageText } from '@/lib/ingest/types';
@@ -34,6 +34,16 @@ export async function runIngest(
 
     await setProgress(supabase, source.id, { stage: 'extracting' });
     const pages = await extract();
+
+    // Bounds the embedding work one upload can buy while holding a single
+    // rate-limit reservation. The adapter caps are per-kind (MAX_PDF_PAGES);
+    // this one applies to whatever an extractor returns, and it runs before the
+    // first embedding batch rather than after (see lib/config.ts).
+    const extractedChars = pages.reduce(
+      (total: number, page: PageText) => total + page.text.length,
+      0,
+    );
+    if (extractedChars > MAX_EXTRACTED_CHARS) throw new AppError('too_much_text');
 
     await setProgress(supabase, source.id, { stage: 'chunking' });
     const chunks = chunkPages(pages);
@@ -71,7 +81,6 @@ export async function runIngest(
       await check(supabase.from('chunks').insert(batch));
     }
 
-    const charCount = pages.reduce((total: number, page: PageText) => total + page.text.length, 0);
     await check(
       supabase
         .from('sources')
@@ -80,7 +89,7 @@ export async function runIngest(
           progress: null,
           error: null,
           page_count: pages.length,
-          char_count: charCount,
+          char_count: extractedChars,
         })
         .eq('id', source.id),
     );
