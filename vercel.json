@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": false
+  },
+  "installCommand": "pnpm install --frozen-lockfile --ignore-scripts",
+  "crons": [
+    {
+      "path": "/api/cron/retention",
+      "schedule": "17 3 * * *"
+    }
+  ]
+}

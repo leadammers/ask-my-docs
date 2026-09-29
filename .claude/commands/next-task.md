@@ -1,6 +1,6 @@
 ---
 description: Pick up the next ready task (or the one given) and implement it following AGENTS.md
-argument-hint: "[task id, e.g. T05]"
+argument-hint: '[task id, e.g. T05]'
 ---
 
 1. Read `AGENTS.md`, `tasks/README.md`, and the relevant docs.

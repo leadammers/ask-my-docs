@@ -6,6 +6,7 @@ Supabase is not just storage here — **RLS is the access-control layer**. A mis
 
 - **All schema changes are migrations** in `supabase/migrations/`, created with `supabase migration new <description>`. Never change the schema in the dashboard.
 - One concern per migration; never edit a migration that has been pushed — write a new one.
+- **Every migration that creates a table or SQL function grants privileges explicitly** — the local stack's default-privilege bootstrap does not exist on the hosted project, so relying on it works locally and fails there with "permission denied". A table's grants to `authenticated` match exactly what its RLS policies allow (e.g. a table with only `select`/`insert` policies gets `grant select, insert`, not `all`); `anon` gets nothing (every real user is `authenticated` via anonymous auth); `service_role` gets full DML since it bypasses RLS. A function gets `grant execute … to authenticated` and nothing for `anon`. Cover the grants with a `table_privs_are()` pgTAP case (`supabase/tests/`).
 - Develop against the **local** stack: `pnpm db:reset` applies all migrations, `pnpm db:test` runs the pgTAP tests, `pnpm db:types` regenerates `lib/supabase/types.ts` — commit it in the same commit.
 - `supabase db push` to the hosted project is a **human release step**, never run by agents.
 

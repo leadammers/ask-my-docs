@@ -17,20 +17,20 @@ Local tooling works, all external services exist, and every secret is in place â
 9. Commit and push the foundation (docs, conventions, tasks, `.claude/settings.json`, LICENSE) as the first commit.
 
 ## Acceptance criteria
-- [ ] `docker run hello-world` and `supabase --version` work
-- [ ] Gemini test call succeeded; model IDs and limits recorded below
-- [ ] Hosted Supabase: anonymous sign-in and Turnstile CAPTCHA enabled; CLI linked
-- [ ] Vercel project linked to the repo, region fra1, production env vars set
-- [ ] `.env.local` exists and is **not** tracked by git
-- [ ] Foundation pushed to `main`
+- [x] `docker run hello-world` and `supabase --version` work
+- [x] Gemini test call succeeded; model IDs and limits recorded below
+- [x] Hosted Supabase: anonymous sign-in and Turnstile CAPTCHA enabled; CLI linked
+- [x] Vercel project linked to the repo, region fra1, production env vars set
+- [x] `.env.local` exists and is **not** tracked by git
+- [x] Foundation pushed to `main`
 
 ## Recorded values
 | Item | Value |
 |---|---|
-| Chat model ID | |
-| Embedding model ID | gemini-embedding-001 |
-| TTS model ID | |
-| Free-tier limits (RPM / RPD) chat | |
-| Free-tier limits embeddings | |
+| Chat model ID | gemini-3.5-flash-lite |
+| Embedding model ID | gemini-embedding-2 |
+| TTS model ID | (deferred â€” see note) |
+| Free-tier limits (RPM / RPD) chat | 10 RPM / 500 RPD / 100k TPM |
+| Free-tier limits embeddings | 100 RPM / 1000 RPD / 30k TPM |
 | Free-tier limits TTS | |
 | Supabase region | |

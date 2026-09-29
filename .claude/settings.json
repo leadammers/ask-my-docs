@@ -1,4 +1,8 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash(pnpm install)",
@@ -33,11 +37,14 @@
       "Bash(docker ps:*)",
       "Read(./**)"
     ],
+    "ask": ["Bash(git push *)", "Bash(git rebase *)"],
     "deny": [
-      "Bash(git push:*)",
       "Bash(git reset --hard:*)",
-      "Bash(git rebase:*)",
       "Bash(git checkout main:*)",
+      "Bash(git push * main)",
+      "Bash(git push * dev)",
+      "Bash(git push origin main)",
+      "Bash(git push origin dev)",
       "Bash(supabase db push:*)",
       "Bash(supabase link:*)",
       "Bash(supabase login:*)",
@@ -46,9 +53,15 @@
       "Bash(*--linked*)",
       "Bash(rm:*)",
       "Bash(sudo:*)",
-      "Read(./.env.local)",
       "Read(./.env)",
-      "Read(./.env.*.local)"
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Read(./.env.development)",
+      "Read(./.env.development.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)",
+      "Read(./.env.test)",
+      "Read(./.env.test.local)"
     ]
   }
 }
