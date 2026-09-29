@@ -32,7 +32,9 @@ function systemRules(citationCount: number): string {
  * `available` in lib/chat/citations.ts's parseUsedCitations should be built
  * from this same list, so a cited [n] always resolves to a real chunk.
  *
- * `question` only picks the quoted passage; the model sees `chunk.content` in full.
+ * `question` only picks the quoted passage; the model sees `chunk.content` in
+ * full, except for a first block the context budget cuts short — `buildSystemPrompt`
+ * re-quotes that one from the part it kept.
  */
 export function buildCitationMap(chunks: RetrievedChunk[], question: string): Citation[] {
   return chunks.map((chunk, index): Citation => ({
@@ -51,8 +53,12 @@ function formatPages(pageFrom: number | null, pageTo: number | null): string {
   return pageFrom === pageTo ? `, p. ${pageFrom}` : `, p. ${pageFrom}-${pageTo}`;
 }
 
+function formatContextHeader(citation: Citation): string {
+  return `[${citation.n}] (Source: "${citation.sourceTitle}"${formatPages(citation.pageFrom, citation.pageTo)})`;
+}
+
 function formatContextBlock(citation: Citation, content: string): string {
-  return `[${citation.n}] (Source: "${citation.sourceTitle}"${formatPages(citation.pageFrom, citation.pageTo)})\n${content}`;
+  return `${formatContextHeader(citation)}\n${content}`;
 }
 
 /** Between two context blocks; counted against `CHAT_MAX_CONTEXT_CHARS`. */
@@ -75,11 +81,15 @@ export type AssembledPrompt = {
  * than being cut in half, so the model never reads a fragment as if it were the
  * chunk. The single exception is a first block that exceeds the budget on its
  * own — dropping it would send an empty context and turn every answer into
- * "I couldn't find this", which is worse than a cut one.
+ * "I couldn't find this", which is worse than a cut one. That cut block keeps
+ * its citation, but the citation's quote is taken from the part that survived,
+ * or the chip would show a passage the model never read as the source of its
+ * answer.
  */
 export function buildSystemPrompt(
   citations: Citation[],
   chunks: RetrievedChunk[],
+  question: string,
 ): AssembledPrompt {
   const includedCitations: Citation[] = [];
   const blocks: string[] = [];
@@ -92,8 +102,19 @@ export function buildSystemPrompt(
     const cost = blocks.length === 0 ? block.length : CONTEXT_SEPARATOR.length + block.length;
     if (usedChars + cost > CHAT_MAX_CONTEXT_CHARS) {
       if (blocks.length === 0) {
-        blocks.push(block.slice(0, CHAT_MAX_CONTEXT_CHARS));
-        includedCitations.push(citation);
+        // The header comes out of the budget too, so the content is cut rather
+        // than the formatted block: that keeps the retained text — the input to
+        // the quote selection below — exactly what the model is shown.
+        const header = formatContextHeader(citation);
+        const keptContent = chunk.content.slice(
+          0,
+          Math.max(0, CHAT_MAX_CONTEXT_CHARS - header.length - 1),
+        );
+        blocks.push(formatContextBlock(citation, keptContent));
+        includedCitations.push({
+          ...citation,
+          quote: extractCitationQuote(keptContent, question),
+        });
       }
       break;
     }

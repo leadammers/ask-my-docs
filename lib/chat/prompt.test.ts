@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildSystemPrompt } from '@/lib/chat/prompt';
+import { buildCitationMap, buildSystemPrompt } from '@/lib/chat/prompt';
 import { CHAT_MAX_CONTEXT_CHARS } from '@/lib/config';
 import type { Citation } from '@/lib/chat/citations';
 import type { RetrievedChunk } from '@/lib/retrieval/search';
+
+/** Any question does: these tests assert the assembled prompt, not the quote text. */
+const QUESTION = 'What is the answer?';
 
 function citation(n: number): Citation {
   return {
@@ -35,6 +38,7 @@ function promptFor(count: number): string {
   return buildSystemPrompt(
     citations,
     citations.map((item: Citation) => chunk(item.n)),
+    QUESTION,
   ).systemPrompt;
 }
 
@@ -45,6 +49,7 @@ describe('buildSystemPrompt', () => {
     const { systemPrompt } = buildSystemPrompt(
       citations,
       citations.map((item: Citation) => chunk(item.n)),
+      QUESTION,
     );
     const range = /\[1\] through \[(\d+)\]/.exec(systemPrompt);
 
@@ -78,7 +83,7 @@ describe('buildSystemPrompt context budget', (): void => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
-    const context = contextOf(buildSystemPrompt(citations, chunks).systemPrompt);
+    const context = contextOf(buildSystemPrompt(citations, chunks, QUESTION).systemPrompt);
 
     expect(context.length).toBeLessThanOrEqual(CHAT_MAX_CONTEXT_CHARS);
     expect(context).toContain('a'.repeat(30_000));
@@ -88,7 +93,7 @@ describe('buildSystemPrompt context budget', (): void => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
-    const context = contextOf(buildSystemPrompt(citations, chunks).systemPrompt);
+    const context = contextOf(buildSystemPrompt(citations, chunks, QUESTION).systemPrompt);
 
     expect(context).not.toContain('bbbbbbbbbb');
   });
@@ -100,10 +105,31 @@ describe('buildSystemPrompt context budget', (): void => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
-    const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks);
+    const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks, QUESTION);
 
     expect(includedCitations.map((item: Citation) => item.n)).toEqual([1]);
     expect(systemPrompt).toMatch(/\[1\] through \[1\]/);
+  });
+
+  it('quotes a cut block from the part the model actually read', (): void => {
+    // The quote is the passage the chip shows as an answer's evidence, and
+    // findQuoteRange highlights it in the drawer. Picking it from text that fell
+    // past the budget would show a passage the model never read as the source of
+    // its answer.
+    const filler = 'Lorem ipsum dolor sit amet. '.repeat(2_000);
+    const chunks = [chunkWith(1, `${filler}The answer is forty two.`)];
+    // Built the way the route builds them, so this covers the pairing of the
+    // quote with the context rather than a hand-set quote.
+    const citations = buildCitationMap(chunks, QUESTION);
+
+    const assembled = buildSystemPrompt(citations, chunks, QUESTION);
+    const context = contextOf(assembled.systemPrompt);
+    const [included] = assembled.includedCitations;
+
+    expect(context).not.toContain('forty two');
+    expect(included?.quote).toBeTruthy();
+    expect(included?.quote).not.toContain('forty two');
+    expect(context).toContain(included?.quote ?? '');
   });
 
   it('cuts a single oversized block rather than sending an empty context', (): void => {
@@ -113,7 +139,7 @@ describe('buildSystemPrompt context budget', (): void => {
     const citations = [citation(1)];
     const chunks = [chunkWith(1, 'a'.repeat(CHAT_MAX_CONTEXT_CHARS * 2))];
 
-    const assembled = buildSystemPrompt(citations, chunks);
+    const assembled = buildSystemPrompt(citations, chunks, QUESTION);
     const context = contextOf(assembled.systemPrompt);
 
     expect(context).not.toBe('');

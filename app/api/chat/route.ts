@@ -139,8 +139,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const citations = buildCitationMap(chunks, question);
   // Only the blocks the prompt actually carries may be cited back — see
-  // buildSystemPrompt (20260929 review).
-  const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks);
+  // buildSystemPrompt (20260929 review). It takes the question too, because a
+  // block the budget cuts short is re-quoted from the part the model read.
+  const { systemPrompt, includedCitations } = buildSystemPrompt(citations, chunks, question);
   const modelMessages = [
     ...history.map((turn) => ({ role: turn.role, content: turn.text })),
     { role: 'user' as const, content: question },
