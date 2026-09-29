@@ -245,8 +245,9 @@ Minimal but real: structured `console` logs (JSON) in route handlers with `reque
 ```text
 app/
   (app)/page.tsx                 notebook list
-  n/[id]/page.tsx                notebook workspace: sources | chat, plus drawers.
-                                 Outside the (app) group, so it carries its own
+  n/[id]/page.tsx                notebook workspace: sources | chat, the split
+                                 drag-resizable, plus drawers. Outside the
+                                 (app) group, so it carries its own
                                  not-found / error / loading boundaries.
   api/sources/[id]/ingest/route.ts
   api/chat/route.ts
@@ -262,6 +263,7 @@ lib/
   supabase/                      client.ts, server.ts, admin.ts (service role), types.ts (generated)
   rate-limit.ts                  per-user limits + global daily cap over usage_events
   errors.ts                      error codes → HTTP status + user message
+  panels.ts                      column-split geometry for the workspace (pure)
 supabase/
   migrations/
   seed/                          demo notebook sources

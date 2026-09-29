@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { DEMO_AUTH_STATE } from '../playwright.config';
 
@@ -24,6 +24,12 @@ const SLOW_QUESTION =
   'Slow Test Source\nThis document exists only to keep an answer streaming\nThe mock-slow-test marker appears here to trigger the long\nreply that is still arriving when a test reaches for Stop\nso that the stop button is never raced against its end\nA final line keeps this page above the minimum length here';
 
 const MOBILE = { width: 390, height: 844 };
+
+/** How far the divider is dragged in the resize test, in either direction. */
+const DRAG_BY_PX = 120;
+
+/** One arrow keypress on the divider (`KEYBOARD_STEP_PX` in panel-resizer.tsx). */
+const ARROW_STEP_PX = 16;
 
 // Same isolation strategy as the other specs: a fresh anonymous user per test
 // via the demo-gate cookie, so notebooks and rate limits never collide.
@@ -67,6 +73,36 @@ async function ask(page: Page, question: string): Promise<void> {
 
 function citationChip(page: Page) {
   return page.getByLabel(/^Citation 1: sample/);
+}
+
+/** The invisible divider between the sources column and the chat. */
+function panelDivider(page: Page) {
+  return page.getByRole('separator', { name: 'Resize sources panel' });
+}
+
+/** The width of the sources column, read off the list inside it. */
+function sourcesWidth(page: Page): Promise<number> {
+  return page
+    .getByRole('list', { name: 'Sources' })
+    .evaluate((element: HTMLElement) => element.getBoundingClientRect().width);
+}
+
+/** Where to put the pointer to grab a control: the middle of its box. */
+async function centreOf(locator: Locator): Promise<{ x: number; y: number }> {
+  const box = await locator.boundingBox();
+  if (box === null) {
+    throw new Error('The control is not on screen, so it cannot be dragged.');
+  }
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** Press on the divider, move `byX` px, release — what a user's drag does. */
+async function dragDivider(page: Page, byX: number): Promise<void> {
+  const start = await centreOf(panelDivider(page));
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + byX, start.y, { steps: 8 });
+  await page.mouse.up();
 }
 
 async function expectNoAxeViolations(page: Page): Promise<void> {
@@ -235,6 +271,43 @@ test.describe('desktop', () => {
     // The home page's card is the same fact, so it has to agree after a reload.
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Renamed in the workspace' })).toBeVisible();
+  });
+
+  test('the divider resizes the sources column, by drag and by keyboard, within limits', async ({
+    browser,
+  }) => {
+    const page = await freshUser(browser);
+    await createNotebook(page, 'Resizable split');
+    await addReadySource(page, 'sample.pdf', 'sample');
+
+    const divider = panelDivider(page);
+    await expect(divider).toBeVisible();
+    const minimum = Number(await divider.getAttribute('aria-valuemin'));
+    const maximum = Number(await divider.getAttribute('aria-valuemax'));
+    // The other half of the split has a floor of its own, and the two do not
+    // touch: this is a real range, not a fixed width with a handle drawn on it.
+    expect(maximum).toBeGreaterThan(minimum + 100);
+
+    const start = await sourcesWidth(page);
+    await dragDivider(page, DRAG_BY_PX);
+    // The column is written as a px track, so the widening is exactly the
+    // distance the pointer travelled, up to the browser's sub-pixel rounding.
+    await expect.poll(() => sourcesWidth(page)).toBeCloseTo(start + DRAG_BY_PX, 0);
+
+    // The same control without a mouse.
+    await divider.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => sourcesWidth(page)).toBeCloseTo(start + DRAG_BY_PX + ARROW_STEP_PX, 0);
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect.poll(() => sourcesWidth(page)).toBeCloseTo(start + DRAG_BY_PX - ARROW_STEP_PX, 0);
+
+    // Neither side can be squeezed away. The over-drag is measured against the
+    // range the divider itself reports, so it stays on screen at any viewport.
+    await dragDivider(page, maximum);
+    await expect(divider).toHaveAttribute('aria-valuenow', String(maximum));
+    await dragDivider(page, -maximum);
+    await expect(divider).toHaveAttribute('aria-valuenow', String(minimum));
   });
 
   test('the notebook page has no accessibility violations, in both themes', async ({ browser }) => {
