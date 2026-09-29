@@ -440,7 +440,7 @@ export type Database = {
         }
         Returns: string
       }
-      touch_last_seen: { Args: Record<PropertyKey, never>; Returns: undefined }
+      touch_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
