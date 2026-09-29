@@ -9,6 +9,7 @@ import { SourcesPanel } from '@/components/workspace/sources-panel';
 import { useIsWide } from '@/components/workspace/use-is-wide';
 import type { Citation } from '@/lib/chat/citations';
 import { CHAT_MAX_SOURCE_IDS } from '@/lib/config';
+import { usableSourceIds } from '@/lib/sources';
 
 type WorkspaceProps = {
   notebookId: string;
@@ -52,14 +53,19 @@ export function Workspace({
     () => readySourceIds.slice(0, CHAT_MAX_SOURCE_IDS),
     [readySourceIds],
   );
-  const selectedIds = selection ?? defaultSelection;
+  // A chosen source can leave `ready` under us — deleted, or sent back to
+  // processing by a retry. Its id must not be counted, sent to the API or shown
+  // as checked until it is ready again; the choice itself is kept, so a source
+  // that comes back ready is still the user's.
+  const selectedIds = usableSourceIds(selection ?? defaultSelection, readySourceIds);
 
   function toggleSource(sourceId: string): void {
     setSelection((current) => {
       const base = current ?? defaultSelection;
       if (base.includes(sourceId)) return base.filter((id) => id !== sourceId);
       // The API caps what it accepts, so the UI refuses to build a longer list.
-      if (base.length >= CHAT_MAX_SOURCE_IDS) return base;
+      // Only the ready ids count towards the cap — the others are never sent.
+      if (usableSourceIds(base, readySourceIds).length >= CHAT_MAX_SOURCE_IDS) return base;
       return [...base, sourceId];
     });
   }
