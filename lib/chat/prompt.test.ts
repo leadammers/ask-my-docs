@@ -73,8 +73,8 @@ function contextOf(prompt: string): string {
   return match[1];
 }
 
-describe('buildSystemPrompt context budget', () => {
-  it('never assembles more context than the budget', () => {
+describe('buildSystemPrompt context budget', (): void => {
+  it('never assembles more context than the budget', (): void => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
@@ -84,7 +84,7 @@ describe('buildSystemPrompt context budget', () => {
     expect(context).toContain('a'.repeat(30_000));
   });
 
-  it('drops a block that no longer fits instead of cutting it in half', () => {
+  it('drops a block that no longer fits instead of cutting it in half', (): void => {
     const citations = [citation(1), citation(2)];
     const chunks = [chunkWith(1, 'a'.repeat(30_000)), chunkWith(2, 'b'.repeat(30_000))];
 
@@ -93,7 +93,7 @@ describe('buildSystemPrompt context budget', () => {
     expect(context).not.toContain('bbbbbbbbbb');
   });
 
-  it('reports only the citations whose blocks the model was given', () => {
+  it('reports only the citations whose blocks the model was given', (): void => {
     // A dropped block must not stay citable: the chip would render a passage the
     // model never read (the route validates and streams this set, not the
     // retrieved one).
@@ -106,7 +106,7 @@ describe('buildSystemPrompt context budget', () => {
     expect(systemPrompt).toMatch(/\[1\] through \[1\]/);
   });
 
-  it('cuts a single oversized block rather than sending an empty context', () => {
+  it('cuts a single oversized block rather than sending an empty context', (): void => {
     // chunk content is bounded by CHUNK_TARGET_TOKENS, so this is a floor for a
     // pathological row, not the normal path — an empty context would turn every
     // answer into "I couldn't find this".

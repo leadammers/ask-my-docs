@@ -34,7 +34,7 @@ describe('toErrorResponse', () => {
     });
   });
 
-  it('maps too_much_text to 422 with a message that names the limit', () => {
+  it('maps too_much_text to 422 with a message that names the limit', (): void => {
     // Shown on the source row, so it has to read like the other content limits
     // (too_many_pages, scanned_pdf) rather than like an unexpected failure.
     expect(toErrorResponse(new AppError('too_much_text'))).toEqual({

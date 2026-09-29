@@ -21,20 +21,31 @@ const CONTEXT: AiCallContext = { requestId: 'req-test', userId: SOURCE.userId };
 
 type SourceUpdate = Record<string, unknown>;
 
+type ErrorResult = { error: null };
+/** What the pipeline expects back from an `eq()`-terminated write. */
+type ErrorQuery = { eq: () => Promise<ErrorResult> };
+/** The slice of the client the pipeline calls, so the mock is typed as it is shaped. */
+type FakeTable = {
+  delete: () => ErrorQuery;
+  update: (payload: SourceUpdate) => ErrorQuery;
+  insert: (payload: unknown) => Promise<ErrorResult>;
+};
+type Progress = { stage?: string } | null | undefined;
+
 /** Records what the pipeline writes, so a test can assert on the stages it reached. */
 function fakeClient(
   sourceUpdates: SourceUpdate[],
   chunkInserts: unknown[],
 ): SupabaseClient<Database> {
-  const noError = { error: null };
+  const noError: ErrorResult = { error: null };
   const client = {
-    from: (table: string) => ({
-      delete: () => ({ eq: async () => noError }),
-      update: (payload: SourceUpdate) => {
+    from: (table: string): FakeTable => ({
+      delete: (): ErrorQuery => ({ eq: async (): Promise<ErrorResult> => noError }),
+      update: (payload: SourceUpdate): ErrorQuery => {
         if (table === 'sources') sourceUpdates.push(payload);
-        return { eq: async () => noError };
+        return { eq: async (): Promise<ErrorResult> => noError };
       },
-      insert: async (payload: unknown) => {
+      insert: async (payload: unknown): Promise<ErrorResult> => {
         chunkInserts.push(payload);
         return noError;
       },
@@ -46,17 +57,17 @@ function fakeClient(
 /** The `stage` of every progress write, in order — one entry per stage reached. */
 function stages(sourceUpdates: SourceUpdate[]): string[] {
   return sourceUpdates
-    .map((update) => update.progress as { stage?: string } | null | undefined)
-    .filter((progress) => progress != null)
-    .map((progress) => progress.stage ?? '');
+    .map((update: SourceUpdate): Progress => update.progress as Progress)
+    .filter((progress: Progress): boolean => progress != null)
+    .map((progress: Progress): string => progress?.stage ?? '');
 }
 
-afterEach(() => {
+afterEach((): void => {
   vi.restoreAllMocks();
 });
 
-describe('runIngest extracted-text budget', () => {
-  it('fails the source before chunking or embedding when the text exceeds the budget', async () => {
+describe('runIngest extracted-text budget', (): void => {
+  it('fails the source before chunking or embedding when the text exceeds the budget', async (): Promise<void> => {
     // The AI SDK is never reached: this is the embedding-quota guard, so a
     // failed assertion here must not depend on a model call being attempted.
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -64,7 +75,12 @@ describe('runIngest extracted-text budget', () => {
     const chunkInserts: unknown[] = [];
     const pages: PageText[] = [{ page: 1, text: 'a'.repeat(MAX_EXTRACTED_CHARS + 1) }];
 
-    await runIngest(fakeClient(sourceUpdates, chunkInserts), SOURCE, async () => pages, CONTEXT);
+    await runIngest(
+      fakeClient(sourceUpdates, chunkInserts),
+      SOURCE,
+      async (): Promise<PageText[]> => pages,
+      CONTEXT,
+    );
 
     expect(chunkInserts).toEqual([]);
     expect(stages(sourceUpdates)).toEqual(['extracting']);
