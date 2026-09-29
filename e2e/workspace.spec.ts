@@ -16,11 +16,18 @@ const SAMPLE_QUESTION =
 // contains the literal "[1]".
 const ANSWER_PROSE = 'According to your sources, this is a mock answer';
 
+// The chunk text of slow.pdf, whose marker makes the mock stream an answer of
+// about six seconds instead of one and a half — long enough that the stop test
+// cannot lose the race between the first token and the click (lib/ai/mock.ts,
+// MOCK_SLOW_TRIGGER). Asking the chunk itself is what makes retrieval match it.
+const SLOW_QUESTION =
+  'Slow Test Source\nThis document exists only to keep an answer streaming\nThe mock-slow-test marker appears here to trigger the long\nreply that is still arriving when a test reaches for Stop\nso that the stop button is never raced against its end\nA final line keeps this page above the minimum length here';
+
 const MOBILE = { width: 390, height: 844 };
 
 // Same isolation strategy as the other specs: a fresh anonymous user per test
 // via the demo-gate cookie, so notebooks and rate limits never collide.
-async function freshUser(browser: Browser): Promise<Page> {
+async function freshUser(browser: Browser, onPage?: (page: Page) => void): Promise<Page> {
   const context = await browser.newContext({ storageState: DEMO_AUTH_STATE });
   const cookies = await context.cookies();
   await context.clearCookies();
@@ -28,6 +35,9 @@ async function freshUser(browser: Browser): Promise<Page> {
     cookies.filter((cookie: { name: string }) => cookie.name === 'demo_session'),
   );
   const page = await context.newPage();
+  // Before the first navigation, so a caller can listen for page errors from
+  // the very first render rather than from wherever the helper happened to stop.
+  onPage?.(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
   return page;
@@ -66,7 +76,16 @@ async function expectNoAxeViolations(page: Page): Promise<void> {
 
 test.describe('desktop', () => {
   test('clicking a citation opens the drawer on the quoted passage', async ({ browser }) => {
-    const page = await freshUser(browser);
+    // The task's AC is that the upload → ready → ask → cite flow logs nothing,
+    // and every assertion below is on the DOM: a page that threw on the way
+    // could still show all of it. Collected before the first navigation.
+    const pageErrors: string[] = [];
+    const page = await freshUser(browser, (fresh) => {
+      fresh.on('console', (message) => {
+        if (message.type() === 'error') pageErrors.push(message.text());
+      });
+      fresh.on('pageerror', (error) => pageErrors.push(error.message));
+    });
     await createNotebook(page, 'Citation drawer notebook');
     await addReadySource(page, 'sample.pdf', 'sample');
 
@@ -94,6 +113,7 @@ test.describe('desktop', () => {
     );
     expect(passageText).toContain(markedText);
     await expect(drawer.getByText(/Couldn't locate the quoted passage/)).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
   });
 
   test('Escape closes the drawer and returns focus to the citation chip', async ({ browser }) => {
@@ -168,11 +188,11 @@ test.describe('desktop', () => {
   test('stop aborts a streaming answer and re-enables the input', async ({ browser }) => {
     const page = await freshUser(browser);
     await createNotebook(page, 'Stop notebook');
-    await addReadySource(page, 'sample.pdf', 'sample');
+    await addReadySource(page, 'slow.pdf', 'slow');
 
-    // The mock streams a token every 150ms, so the answer is still arriving
-    // when Stop is clicked a beat later.
-    await ask(page, SAMPLE_QUESTION);
+    // slow.pdf asks for the mock's long answer: a token every 150ms for about
+    // six seconds, so the stream cannot have ended by the time Stop is clicked.
+    await ask(page, SLOW_QUESTION);
 
     // Wait for real partial text before reaching for Stop: the button appears as
     // soon as the first chunk lands, and only once prose is on screen does
@@ -196,7 +216,7 @@ test.describe('desktop', () => {
     // Whatever had streamed before the abort stays on screen — an abort must
     // not clear the transcript or leave a stuck error.
     await expect(partialAnswer).toBeVisible();
-    await expect(page.getByText(SAMPLE_QUESTION)).toBeVisible();
+    await expect(page.getByText(SLOW_QUESTION)).toBeVisible();
     await expect(page.getByText('Something went wrong. Please try again.')).toHaveCount(0);
   });
 
