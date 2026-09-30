@@ -11,6 +11,15 @@ import type { Database } from '@/lib/supabase/types';
 // the row) is what these tests exercise; the real client against the local
 // stack is covered by the integration suite and E2E.
 
+// The embedding call is replaced so a test can see the deadline the pipeline
+// hands it; the SDK itself is exercised in lib/ai/embeddings.test.ts.
+const { embedDocumentsMock } = vi.hoisted(() => ({ embedDocumentsMock: vi.fn() }));
+
+vi.mock('@/lib/ai/embeddings', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/embeddings')>();
+  return { ...actual, embedDocuments: (...args: unknown[]) => embedDocumentsMock(...args) };
+});
+
 const SOURCE: IngestSource = {
   id: '11111111-1111-4111-8111-111111111111',
   notebookId: '22222222-2222-4222-8222-222222222222',
@@ -89,5 +98,32 @@ describe('runIngest extracted-text budget', (): void => {
       progress: null,
       error: userMessage('too_much_text'),
     });
+  });
+});
+
+describe('runIngest embedding deadline', (): void => {
+  it('hands the deadline it was given to each embedding batch', async (): Promise<void> => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    embedDocumentsMock.mockResolvedValue([[0.5], [0.6]]);
+    const sourceUpdates: SourceUpdate[] = [];
+    const chunkInserts: unknown[] = [];
+    const pages: PageText[] = [
+      { page: 1, text: 'alpha '.repeat(400) },
+      { page: 2, text: 'beta '.repeat(400) },
+    ];
+    const deadlineMs = Date.now() + 240_000;
+
+    await runIngest(
+      fakeClient(sourceUpdates, chunkInserts),
+      SOURCE,
+      async (): Promise<PageText[]> => pages,
+      CONTEXT,
+      deadlineMs,
+    );
+
+    // Every batch is bounded by the same deadline, so the run can still write its
+    // outcome inside the route's budget instead of being killed mid-retry.
+    expect(embedDocumentsMock).toHaveBeenCalledWith(expect.any(Array), CONTEXT, { deadlineMs });
+    expect(sourceUpdates.at(-1)).toMatchObject({ status: 'ready' });
   });
 });
