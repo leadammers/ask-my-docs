@@ -222,4 +222,65 @@ describe('withRetry', () => {
 
     expect(delays).toEqual([0]);
   });
+
+  it('stops instead of waiting when the window would not fit before the deadline', async () => {
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const fn = vi.fn().mockRejectedValue(apiError(429));
+
+    await expect(
+      withRetry(fn, {
+        attempts: 3,
+        sleep,
+        random: () => 1,
+        quotaDelayMs: 60_000,
+        deadlineMs: 1_000_000,
+        // One millisecond short of the window fitting before the deadline.
+        now: () => 1_000_000 - 60_000 + 1,
+      }),
+    ).rejects.toBeInstanceOf(QuotaExceededError);
+
+    // It gives up on the first refusal: waiting is what would run the caller out of time.
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('waits the window when it still fits before the deadline', async () => {
+    const delays: number[] = [];
+    const sleep = vi.fn().mockImplementation(async (ms: number) => {
+      delays.push(ms);
+    });
+    const fn = vi.fn().mockRejectedValueOnce(apiError(429)).mockResolvedValueOnce('ok');
+
+    const result = await withRetry(fn, {
+      attempts: 3,
+      sleep,
+      random: () => 1,
+      quotaDelayMs: 60_000,
+      deadlineMs: 1_000_000,
+      // Exactly enough room: the wait may land on the deadline, not past it.
+      now: () => 940_000,
+    });
+
+    expect(result).toBe('ok');
+    expect(delays).toEqual([60_000]);
+  });
+
+  it('does not apply the deadline to a 503 backoff, which is seconds long', async () => {
+    const delays: number[] = [];
+    const sleep = vi.fn().mockImplementation(async (ms: number) => {
+      delays.push(ms);
+    });
+    const fn = vi.fn().mockRejectedValueOnce(apiError(503)).mockResolvedValueOnce('ok');
+
+    await withRetry(fn, {
+      attempts: 3,
+      sleep,
+      random: () => 1,
+      baseDelayMs: 100,
+      deadlineMs: 1_000_000,
+      now: () => 1_000_000,
+    });
+
+    expect(delays).toEqual([100]);
+  });
 });

@@ -17,8 +17,10 @@ export const AI_RETRY_BASE_DELAY_MS = 500;
  * budget, so the exponential backoff above cannot outlast it: measured against
  * the free tier, a document's second embedding batch is refused while the first
  * has spent the minute, and the provider's own `retryDelay` was 49s — retrying
- * after a full window succeeded. Costs one window per refused call, so a
- * document of many batches may outlast the ingest route's 300s budget.
+ * after a full window succeeded. Costs one window per refused batch, so a
+ * document of many batches would outlast the ingest route's 300s budget: the
+ * route passes that budget down as a deadline, and a wait that would cross it is
+ * skipped rather than started (lib/ai/retry.ts).
  */
 export const AI_RETRY_QUOTA_DELAY_MS = 60_000;
 

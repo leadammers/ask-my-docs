@@ -22,6 +22,15 @@ export const maxDuration = 300;
 
 const INGEST_WINDOW_SECONDS = 60 * 60;
 
+/**
+ * Held back from `maxDuration` so a run that stops retrying still has room to
+ * store its `failed` status: past the deadline no further quota wait starts
+ * (lib/ai/retry.ts), and the update that follows has to fit in what is left.
+ * Generous on purpose — overrunning costs a source stuck in `processing` until
+ * STUCK_PROCESSING_MS, stopping early costs only a retry the user can press.
+ */
+const INGEST_DEADLINE_RESERVE_MS = 60_000;
+
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 /**
@@ -94,6 +103,9 @@ export async function POST(
       { id: source.id, notebookId: source.notebookId, userId: user.id },
       pdfExtractor(admin, storagePath),
       context,
+      // The budget is this route's own, so the deadline is derived from it here
+      // rather than restated in the pipeline.
+      Date.now() + maxDuration * 1000 - INGEST_DEADLINE_RESERVE_MS,
     ),
   );
 

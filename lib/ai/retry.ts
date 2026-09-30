@@ -33,8 +33,17 @@ type RetryOptions = {
    * fail fast than hold the request open passes 0.
    */
   quotaDelayMs?: number;
+  /**
+   * Absolute epoch ms (`Date.now()` scale) past which no quota wait may start. A
+   * wait that would cross it is not taken: inside an invocation with a fixed
+   * budget, being killed mid-wait loses the chance to store a handled failure,
+   * whereas failing now leaves the work retryable. Undefined = no deadline.
+   */
+  deadlineMs?: number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  /** Clock for `deadlineMs`, injected so tests never touch real time. */
+  now?: () => number;
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -53,8 +62,10 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     attempts = AI_RETRY_ATTEMPTS,
     baseDelayMs = AI_RETRY_BASE_DELAY_MS,
     quotaDelayMs = AI_RETRY_QUOTA_DELAY_MS,
+    deadlineMs,
     sleep = defaultSleep,
     random = Math.random,
+    now = Date.now,
   } = options;
 
   for (let attempt = 0; ; attempt++) {
@@ -63,10 +74,15 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     } catch (error) {
       if (!isRetryableAiError(error)) throw error;
       if (attempt + 1 >= attempts) throw new QuotaExceededError({ cause: error });
-      const delayMs =
-        apiErrorStatus(error) === QUOTA_STATUS
-          ? quotaDelayMs
-          : backoffDelayMs(attempt, random, baseDelayMs);
+      const isQuota = apiErrorStatus(error) === QUOTA_STATUS;
+      // A quota wait is a whole window long, so it is the one that can run an
+      // invocation out of time. Past the deadline it is skipped outright: the
+      // caller gets the failure now and can still persist it, instead of the
+      // runtime killing the run mid-sleep with nothing written.
+      if (isQuota && deadlineMs !== undefined && now() + quotaDelayMs > deadlineMs) {
+        throw new QuotaExceededError({ cause: error });
+      }
+      const delayMs = isQuota ? quotaDelayMs : backoffDelayMs(attempt, random, baseDelayMs);
       await sleep(delayMs);
     }
   }

@@ -130,7 +130,9 @@ ingest(source):
   chunk     -> ~800 tokens, ~120 overlap, split on paragraph > sentence > hard limit,
                keep page_from/page_to per chunk
   embed     -> embedMany in batches (task type RETRIEVAL_DOCUMENT); a 429 waits out the
-               minute's quota window before retrying (§6)
+               minute's quota window before retrying (§6), unless the wait would cross
+               the route's own maxDuration — then the source fails now, while the run
+               can still store that outcome
   store     -> insert chunks
   progress updated after each stage and each embedding batch (the UI polls it)
   status = ready   (or failed + human-readable error)
@@ -261,7 +263,7 @@ Migrations are developed and tested locally (`db:reset`, `db:test`) and pushed t
 
 | Situation | Behaviour |
 |---|---|
-| Gemini 429 (quota) | A per-minute budget, so a retry waits out the window (`AI_RETRY_QUOTA_DELAY_MS`) rather than backing off, up to `AI_RETRY_ATTEMPTS`; then the friendly "The free AI quota is exhausted right now, try again in a minute". Query embeddings opt out (`quotaDelayMs: 0`): a reader is waiting and the chat route is budgeted at 60s |
+| Gemini 429 (quota) | A per-minute budget, so a retry waits out the window (`AI_RETRY_QUOTA_DELAY_MS`) rather than backing off, up to `AI_RETRY_ATTEMPTS`; then the friendly "The free AI quota is exhausted right now, try again in a minute". A wait that would cross the ingest deadline is skipped, so the run fails inside its budget instead of being killed mid-wait (§4.1). Query embeddings opt out (`quotaDelayMs: 0`): a reader is waiting and the chat route is budgeted at 60s |
 | Ingest failure | Source marked `failed` with a readable reason; the rest of the notebook keeps working |
 | Rate limit hit | 429 with a clear message; counted via `usage_events` |
 | Global daily AI cap reached | AI features show "daily demo limit reached" until midnight UTC; the rest of the app keeps working |

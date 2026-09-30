@@ -57,7 +57,7 @@ describe('embedDocuments / embedQuery (mock provider)', () => {
     const { embedDocuments } = await import('@/lib/ai/embeddings');
     const texts = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
 
-    const embeddings = await embedDocuments(texts, context, 2);
+    const embeddings = await embedDocuments(texts, context, { batchSize: 2 });
 
     expect(embeddings).toHaveLength(texts.length);
     texts.forEach((text, index) => {
@@ -71,7 +71,7 @@ describe('embedDocuments / embedQuery (mock provider)', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const texts = ['alpha', 'beta', 'gamma'];
 
-    await embedDocuments(texts, context, 2);
+    await embedDocuments(texts, context, { batchSize: 2 });
 
     expect(logSpy.mock.calls.length).toBeGreaterThan(0);
     for (const [line] of logSpy.mock.calls) {

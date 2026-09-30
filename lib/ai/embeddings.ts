@@ -27,23 +27,32 @@ function assertDimensions(embeddings: number[][]): number[][] {
   return embeddings;
 }
 
+type EmbedDocumentsOptions = {
+  /** Texts per request; the pipeline drives batches itself and takes the default. */
+  batchSize?: number;
+  /** Absolute epoch ms past which no quota wait may start (lib/ai/retry.ts). */
+  deadlineMs?: number;
+};
+
 /** Embeds document chunks in sequential batches (task type RETRIEVAL_DOCUMENT). */
 export async function embedDocuments(
   texts: readonly string[],
   context: AiCallContext,
-  batchSize: number = EMBED_BATCH_SIZE,
+  { batchSize = EMBED_BATCH_SIZE, deadlineMs }: EmbedDocumentsOptions = {},
 ): Promise<number[][]> {
   const embeddings: number[][] = [];
 
   for (const batch of toBatches(texts, batchSize)) {
     const startedAt = Date.now();
-    const result = await withRetry(() =>
-      embedMany({
-        model: embeddingModel(),
-        values: batch,
-        maxRetries: 0,
-        providerOptions: embeddingProviderOptions('RETRIEVAL_DOCUMENT'),
-      }),
+    const result = await withRetry(
+      () =>
+        embedMany({
+          model: embeddingModel(),
+          values: batch,
+          maxRetries: 0,
+          providerOptions: embeddingProviderOptions('RETRIEVAL_DOCUMENT'),
+        }),
+      { deadlineMs },
     );
     logUsage({
       ...context,
