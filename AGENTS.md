@@ -36,6 +36,10 @@ pnpm test
 pnpm build
 pnpm test:e2e      # needs the local stack (pnpm db:start), .env.test.local (copy .env.test.example)
                    # and port 3000 free — stop `pnpm dev` first, the run fails if it isn't
+                   # Also export the Supabase vars as `supabase status -o env` names them (see Repo
+                   # notes): .env.test.local is loaded by the Next app, not by the Playwright runner,
+                   # so on its own it leaves e2e/entitle.ts throwing and ~20 of 31 specs failing
+                   # before any app code runs — which reads as a broken branch, not a missing env
 ```
 
 Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), commit-msg runs commitlint (Conventional Commits, `commitlint.config.mjs`), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
@@ -78,7 +82,7 @@ pnpm eval                  # run the evaluation (T13)
 
 ## Repo notes (claude-cost-orchestrator /optimize)
 
-- E2E env vars come from `supabase status -o env` (ANON_KEY, API_URL, SERVICE_ROLE_KEY, etc.) — not in any `.env` file.
+- E2E env vars come from `supabase status -o env` (API_URL → `NEXT_PUBLIC_SUPABASE_URL`, ANON_KEY → `NEXT_PUBLIC_SUPABASE_ANON_KEY`, SERVICE_ROLE_KEY → `SUPABASE_SERVICE_ROLE_KEY`) — export them in the shell, they are in no `.env` file, and `.env.test.local` is not read by the Playwright runner (see "Standard checks").
 - Playwright + Radix Dialog: while a dialog is open, the rest of the page is `aria-hidden` — role queries on background content fail until the dialog closes, even though the DOM elements exist.
 - `SKIP_ENV_VALIDATION=1` is set for every CI job (lint/test/build/e2e) — `lib/env.ts`'s Zod validation only actually runs in the `vercel build` deploy steps, which pull real env vars via `vercel pull`.
 - Local Supabase's default-privilege bootstrap pre-grants broad table privileges to `authenticated`/`service_role`; the hosted project has none. A migration that only adds GRANTs (without `revoke all` first) passes local pgTAP but still fails "permission denied" on hosted — revoke first, then grant exactly what RLS allows.
