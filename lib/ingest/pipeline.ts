@@ -26,6 +26,12 @@ export async function runIngest(
   source: IngestSource,
   extract: Extractor,
   context: AiCallContext,
+  /**
+   * Absolute epoch ms past which no further quota wait may start (lib/ai/retry.ts),
+   * computed by the route from its own invocation budget. Omitted by a caller that
+   * has no such budget, which then gets the unbounded wait.
+   */
+  deadlineMs?: number,
 ): Promise<void> {
   const startedAt = Date.now();
   try {
@@ -60,6 +66,9 @@ export async function runIngest(
       const batchEmbeddings = await embedDocuments(
         batch.map((chunk: Chunk) => chunk.content),
         context,
+        // Each batch gets its own retry loop, so each needs the same deadline:
+        // together they must leave room to write this source's outcome.
+        { deadlineMs },
       );
       embeddings.push(...batchEmbeddings);
     }
