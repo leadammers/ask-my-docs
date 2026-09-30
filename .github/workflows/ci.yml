@@ -195,7 +195,15 @@ jobs:
         run: pnpm audit --audit-level=high
 
   deploy-preview:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # A Dependabot PR passes the fork gate above — its branch lives in this repo —
+    # but GitHub exposes no secrets to a run triggered by Dependabot, so
+    # `secrets.VERCEL_TOKEN` is empty there and the job can only fail: it turns the
+    # PR red and registers a `preview` deployment that never builds. Gated on the
+    # PR's author rather than `github.actor`, which becomes whoever re-runs it.
+    if: |
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     needs: [build, test, db-test, e2e, security]
     environment:
