@@ -24,6 +24,7 @@ Before writing code, read:
 7. **Update status.** Set the task to `review` in `tasks/README.md`. Only the human sets `done`.
 8. **Commit** once per task after checks pass: `<type>(T0X): <summary>` (Conventional Commits, e.g. `feat(T05): ingest PDFs into chunks`). **Never push without the human's explicit, real-time approval of that specific push** (see "Things the agent must not do").
    Branch naming: work happens on `dev` (branched from `main`); for a task large enough to warrant its own branch, branch from `dev` as `<type>/T0X-slug` (e.g. `feat/t05-pdf-ingestion`), matching the commit type. `main` only moves via a reviewed merge from `dev`.
+   Dependencies follow the same rule: Dependabot **version-update** PRs target `dev` (`target-branch` in `.github/dependabot.yml`). **Security-update** PRs cannot — that option is version-updates-only, and those PRs always target the default branch — so when one arrives on `main`, land it there (production is what it patches), then merge `main` back into `dev` in the same sitting, through a PR (`dev` is protected too). A `main` left ahead of `dev` is what turns the next release into a conflict. See D-22.
 
 If a task is ambiguous, contradicts the docs, or turns out much larger than estimated: stop and ask. Do not guess on architecture.
 
