@@ -41,6 +41,9 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  const invocationStartedAt = Date.now();
+  // Request setup and after() share this route's invocation budget.
+  const deadlineMs = invocationStartedAt + maxDuration * 1000 - INGEST_DEADLINE_RESERVE_MS;
   const { id } = await params;
   const parsedId = sourceIdSchema.safeParse(id);
   if (!parsedId.success) return errorResponse('invalid_input');
@@ -103,9 +106,7 @@ export async function POST(
       { id: source.id, notebookId: source.notebookId, userId: user.id },
       pdfExtractor(admin, storagePath),
       context,
-      // The budget is this route's own, so the deadline is derived from it here
-      // rather than restated in the pipeline.
-      Date.now() + maxDuration * 1000 - INGEST_DEADLINE_RESERVE_MS,
+      deadlineMs,
     ),
   );
 
