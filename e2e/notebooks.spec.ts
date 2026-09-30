@@ -25,10 +25,6 @@ async function signInFreshVisitor(browser: Browser): Promise<Page> {
   return page;
 }
 
-function notebookCard(page: Page, title: string) {
-  return page.locator('[data-slot="card"]').filter({ hasText: title });
-}
-
 // Only non-demo cards render a "Notebook actions" menu, so this drains every
 // notebook the shared demo user owns without needing to know their titles.
 // Guards against a prior failed run in this serial group (e.g. a CI retry)
@@ -70,33 +66,56 @@ test('create, rename and delete a notebook; changes survive a reload', async ({ 
 
   await page.getByRole('button', { name: 'New notebook' }).click();
   await page.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Untitled notebook' }).first()).toBeVisible();
+
+  // Radix marks the page behind an open dialog aria-hidden, so nothing on the
+  // list is queryable by role until the create dialog closes — this wait is
+  // how the create is observed to have committed.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // Bind every step to the notebook this test created, not to its title: a
+  // title count covers the shared demo user's whole list, and serial mode
+  // re-runs this group on a CI retry with the previous attempt's notebook
+  // still in it, so a global count asserts against the earlier attempt.
+  const href = await page
+    .getByRole('link', { name: 'Untitled notebook' })
+    .first()
+    .getAttribute('href');
+  if (!href) throw new Error('the created notebook card has no link to bind to');
+
+  const card = page.locator(`[data-slot="card"]:has(a[href="${href}"])`);
+  await expect(card.getByRole('link', { name: 'Untitled notebook' })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Untitled notebook' }).first()).toBeVisible();
+  await expect(card.getByRole('link', { name: 'Untitled notebook' })).toBeVisible();
 
-  const card = notebookCard(page, 'Untitled notebook').first();
   await card.getByRole('button', { name: 'Notebook actions' }).click();
   await page.getByRole('menuitem', { name: 'Rename' }).click();
   const renameInput = page.getByRole('dialog').getByRole('textbox');
   await renameInput.fill('Renamed notebook');
   await page.getByRole('button', { name: 'Save' }).click();
 
-  await expect(page.getByRole('link', { name: 'Renamed notebook' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Untitled notebook' })).toHaveCount(0);
+  // Visible first, then the count: a visible check cannot pass behind an open
+  // dialog, so it is what proves the rename dialog closed — only then is the
+  // count below reading the list rather than the aria-hidden copy of it.
+  await expect(card.getByRole('link', { name: 'Renamed notebook' })).toBeVisible();
+  await expect(card.getByRole('link', { name: 'Untitled notebook' })).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Renamed notebook' })).toBeVisible();
+  await expect(card.getByRole('link', { name: 'Renamed notebook' })).toBeVisible();
 
-  const renamedCard = notebookCard(page, 'Renamed notebook').first();
-  await renamedCard.getByRole('button', { name: 'Notebook actions' }).click();
+  await card.getByRole('button', { name: 'Notebook actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
-  await expect(page.getByRole('link', { name: 'Renamed notebook' })).toHaveCount(0);
+  // Wait on the dialog closing, not on a link count: while the confirm dialog
+  // is open the list is aria-hidden, so `toHaveCount(0)` here passes whether
+  // or not the delete committed, and the reload below raced the in-flight
+  // action. (Same pitfall the limit test documents for its failure dialog.)
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(card).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Renamed notebook' })).toHaveCount(0);
+  await expect(card).toHaveCount(0);
 });
 
 test("a second anonymous session does not see the first session's notebooks", async ({
