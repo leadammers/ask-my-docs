@@ -12,6 +12,15 @@ export type AiUsageKind = (typeof AI_USAGE_KINDS)[number];
 
 export const AI_RETRY_ATTEMPTS = 3;
 export const AI_RETRY_BASE_DELAY_MS = 500;
+/**
+ * Wait before retrying an exhausted quota (429). That limit is a per-*minute*
+ * budget, so the exponential backoff above cannot outlast it: measured against
+ * the free tier, a document's second embedding batch is refused while the first
+ * has spent the minute, and the provider's own `retryDelay` was 49s — retrying
+ * after a full window succeeded. Costs one window per refused call, so a
+ * document of many batches may outlast the ingest route's 300s budget.
+ */
+export const AI_RETRY_QUOTA_DELAY_MS = 60_000;
 
 export const CHAT_MAX_OUTPUT_TOKENS = 1024;
 export const CHAT_QUESTION_MAX_CHARS = 4000;

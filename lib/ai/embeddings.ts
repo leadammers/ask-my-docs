@@ -62,13 +62,17 @@ export async function embedDocuments(
 /** Embeds a user question (task type RETRIEVAL_QUERY). */
 export async function embedQuery(text: string, context: AiCallContext): Promise<number[]> {
   const startedAt = Date.now();
-  const result = await withRetry(() =>
-    embed({
-      model: embeddingModel(),
-      value: text,
-      maxRetries: 0,
-      providerOptions: embeddingProviderOptions('RETRIEVAL_QUERY'),
-    }),
+  const result = await withRetry(
+    () =>
+      embed({
+        model: embeddingModel(),
+        value: text,
+        maxRetries: 0,
+        providerOptions: embeddingProviderOptions('RETRIEVAL_QUERY'),
+      }),
+    // A reader is waiting on this answer and the chat route is budgeted at 60s,
+    // so a spent quota fails fast instead of holding the request for a window.
+    { quotaDelayMs: 0 },
   );
   logUsage({
     ...context,
