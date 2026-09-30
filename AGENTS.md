@@ -24,6 +24,7 @@ Before writing code, read:
 7. **Update status.** Set the task to `review` in `tasks/README.md`. Only the human sets `done`.
 8. **Commit** once per task after checks pass: `<type>(T0X): <summary>` (Conventional Commits, e.g. `feat(T05): ingest PDFs into chunks`). **Never push without the human's explicit, real-time approval of that specific push** (see "Things the agent must not do").
    Branch naming: work happens on `dev` (branched from `main`); for a task large enough to warrant its own branch, branch from `dev` as `<type>/T0X-slug` (e.g. `feat/t05-pdf-ingestion`), matching the commit type. `main` only moves via a reviewed merge from `dev`.
+   Dependencies follow the same rule: Dependabot **version-update** PRs target `dev` (`target-branch` in `.github/dependabot.yml`). **Security-update** PRs cannot — that option is version-updates-only, and those PRs always target the default branch — so when one arrives on `main`, land it there (production is what it patches), then merge `main` back into `dev` in the same sitting, through a PR (`dev` is protected too). A `main` left ahead of `dev` is what turns the next release into a conflict. See D-22.
 
 If a task is ambiguous, contradicts the docs, or turns out much larger than estimated: stop and ask. Do not guess on architecture.
 
@@ -36,6 +37,11 @@ pnpm test
 pnpm build
 pnpm test:e2e      # needs the local stack (pnpm db:start), .env.test.local (copy .env.test.example)
                    # and port 3000 free — stop `pnpm dev` first, the run fails if it isn't
+                   # playwright.config.ts loads .env.test.local into the runner, but the two Supabase
+                   # vars it needs are commented out in .env.test.example: unless you uncomment that
+                   # pair (or export it yourself, see Repo notes) e2e/entitle.ts throws and ~20 of
+                   # 31 specs fail before any app code runs — reads as a broken branch, not a
+                   # missing env
 ```
 
 Git hooks (husky, installed by `pnpm install`) run these automatically: pre-commit runs lint-staged (ESLint `--fix` + Prettier on staged files), commit-msg runs commitlint (Conventional Commits, `commitlint.config.mjs`), pre-push runs `pnpm typecheck` and `pnpm test`. Do not bypass them with `--no-verify`; CI runs `pnpm format:check` anyway.
@@ -78,7 +84,7 @@ pnpm eval                  # run the evaluation (T13)
 
 ## Repo notes (claude-cost-orchestrator /optimize)
 
-- E2E env vars come from `supabase status -o env` (ANON_KEY, API_URL, SERVICE_ROLE_KEY, etc.) — not in any `.env` file.
+- E2E env vars: `e2e/entitle.ts` runs in the Playwright process and needs `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (the `supabase status -o env` names are API_URL and SERVICE_ROLE_KEY). `playwright.config.ts` loads `.env.test.local` into that process, so putting them there works; shell exports do too, and that is what CI does. The app's `.env.local` never reaches the runner — only the Next webServer reads it — so it cannot cover this.
 - Playwright + Radix Dialog: while a dialog is open, the rest of the page is `aria-hidden` — role queries on background content fail until the dialog closes, even though the DOM elements exist.
 - `SKIP_ENV_VALIDATION=1` is set for every CI job (lint/test/build/e2e) — `lib/env.ts`'s Zod validation only actually runs in the `vercel build` deploy steps, which pull real env vars via `vercel pull`.
 - Local Supabase's default-privilege bootstrap pre-grants broad table privileges to `authenticated`/`service_role`; the hosted project has none. A migration that only adds GRANTs (without `revoke all` first) passes local pgTAP but still fails "permission denied" on hosted — revoke first, then grant exactly what RLS allows.
