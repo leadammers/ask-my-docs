@@ -39,7 +39,7 @@ New table `demo_codes`:
 
 RLS enabled, no policies. Follow the `demo_entitlements` grant pattern: `revoke all` from `anon, authenticated, service_role`, then grant only what `service_role` needs (the repo note on hosted vs. local default privileges applies).
 
-`demo_entitlements` gains `code_id uuid not null references demo_codes (id) on delete cascade` . "Last used" in `list` is derived as `max(expires_at) - 8h` over the code's entitlements, so no extra column is needed.
+`demo_entitlements` gains `code_id uuid not null references demo_codes (id) on delete cascade`. "Last used" in `list` is derived as `max(expires_at) - 8h` over the code's entitlements, so no extra column is needed.
 
 `is_demo_entitled()` is replaced (same signature, same `stable security definer set search_path = ''`) to also require the code to be live:
 
