@@ -95,19 +95,19 @@ describe('summarizeDemoCodes', () => {
       { code_id: 'code-1', expires_at: new Date(now.getTime() - 1 * hour).toISOString() },
       { code_id: 'other', expires_at: new Date(now.getTime() + 2 * hour).toISOString() },
     ];
-    const [summary] = summarizeDemoCodes([baseCode], entitlements, now);
-    expect(summary.seatsInUse).toBe(1);
-    expect(summary.maxSessions).toBe(3);
-    expect(summary.status).toBe('active');
-    expect(summary.lastUsedAt).toBe(
+    const summary = summarizeDemoCodes([baseCode], entitlements, now)[0];
+    expect(summary?.seatsInUse).toBe(1);
+    expect(summary?.maxSessions).toBe(3);
+    expect(summary?.status).toBe('active');
+    expect(summary?.lastUsedAt).toBe(
       new Date(now.getTime() + 2 * hour - DEMO_SESSION_DURATION_MS).toISOString(),
     );
   });
 
   it('reports no last use for a code nobody has claimed', () => {
-    const [summary] = summarizeDemoCodes([baseCode], [], now);
-    expect(summary.lastUsedAt).toBeNull();
-    expect(summary.seatsInUse).toBe(0);
+    const summary = summarizeDemoCodes([baseCode], [], now)[0];
+    expect(summary?.lastUsedAt).toBeNull();
+    expect(summary?.seatsInUse).toBe(0);
   });
 
   it('prefers revoked over expired, and expired over active', () => {
