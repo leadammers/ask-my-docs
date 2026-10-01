@@ -60,7 +60,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | Not doing | Reason |
 |---|---|
 | Real accounts (email/OAuth), sharing, collaboration | Anonymous sessions are enough for a demo; accounts add a login wall reviewers would hit |
-| Multi-language UI / i18n | UI is English; answers follow the language of the question (German works) |
+| Multi-language UI / i18n | UI is English; answers follow the language of the question (German works). A de/en UI is [T16](../tasks/T16-i18n.md), scheduled before T09 and cut only after T11 and T12 |
 | Mobile-optimised layout | Desktop-first; must not break on mobile, but not designed for it |
 | OCR for scanned PDFs | Text-layer PDFs only; scanned PDFs fail with a clear message |
 | Python backend / separate API service | See `docs/decisions.md` D-02 |
