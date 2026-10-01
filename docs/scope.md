@@ -3,7 +3,7 @@
 **Project:** ask-my-docs — a NotebookLM clone
 **Context:** take-home task for a job application. Deliverables: GitHub repo, live deployment, Loom video (max. 10 min) explaining the approach and testing the clone live.
 **Time budget:** ~1 week of evenings, ~18-22 focused hours, agent-assisted.
-**Last updated:** 2026-09-22
+**Last updated:** 2026-10-01
 
 ---
 
@@ -11,7 +11,7 @@
 
 The reviewers will judge three things, in this order:
 
-1. **Does it work live?** They will click the deployment link. First load must be fast, no login wall, no broken states.
+1. **Does it work live?** They will click the deployment link. First load must be fast, no account or sign-up, no broken states. The only gate is the shared demo password (D-16), handed out on request.
 2. **How did she approach it?** The task says AI tools are explicitly wanted and they want to *see how she works*. The repo itself — scope, decisions, task files, agent instructions, commit history — is evidence of the process. `docs/ai-workflow.md` makes that explicit.
 3. **Is the engineering sound?** Grounded answers with real citations, sensible architecture, security awareness, some measurement of quality.
 

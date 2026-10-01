@@ -259,6 +259,19 @@ Changing the embedding model or dimensions requires re-embedding; the dimension 
 
 Migrations are developed and tested locally (`db:reset`, `db:test`) and pushed to production by a human.
 
+### Deployment (CI is the only deployer, D-23)
+
+The Vercel Git integration is disconnected (and `vercel.json` sets `git.deploymentEnabled: false` as a second guard), so `.github/workflows/ci.yml` owns every deployment. Each deploy job needs `build`, `test`, `db-test`, `e2e` and `security` to pass and uses the Vercel CLI with `--prebuilt`.
+
+| Trigger | Job | GitHub environment | Vercel target |
+|---|---|---|---|
+| PR from an in-repo branch (not Dependabot, head not `dev`/`main`) | `deploy-preview` | `preview` | preview |
+| Push to `dev` | `deploy-dev` | `dev` | preview, aliased to `VERCEL_DEV_ALIAS` |
+| Push to `main` | `deploy-prod` | `prod` | production |
+| PR merged | `preview-cleanup.yml` | — | deletes that branch's previews (`--safe`, never `production`, never created after the merge) |
+
+A dev → main release PR does not build a preview: `dev` already has its own deployment, and `main` gets one on merge. Hosted migrations are still a human step and must land with the deploy that needs them (`tasks/README.md`).
+
 ## 6. Error handling & limits
 
 | Situation | Behaviour |

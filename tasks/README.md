@@ -55,8 +55,8 @@ Development runs against the **local** Supabase stack. Production is the hosted 
 
 1. Review new migrations in `supabase/migrations/`
 2. `supabase db push` (hosted project, linked in T00)
-3. Push `main` → Vercel deploys
+3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first
 4. If seed data changed (T08c, T09, T11): run `pnpm script scripts/seed-demo.ts` with production env values
-5. Smoke-test the live URL in an incognito window
+5. Smoke-test the live URL in an incognito window (`ask-my-docs-demo.vercel.app`, demo password required)
 
 Release after T03 (first deploy), T06, T08, and after every extra that adds a migration or seed data. Deploy early and often; a late deployment surprise is the biggest schedule risk.

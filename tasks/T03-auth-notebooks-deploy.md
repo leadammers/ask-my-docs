@@ -6,7 +6,7 @@
 A visitor opening the live URL is silently signed in anonymously, can create, rename and delete notebooks, and sees them again after a reload. **The app is deployed on Vercel.**
 
 ## Your part
-- **Release to production** (see `tasks/README.md`): `supabase db push` to the hosted project, push `main`, confirm the Vercel deployment
+- **Release to production** (see `tasks/README.md`): `supabase db push` to the hosted project, merge to `main` (CI's `deploy-prod` deploys; the Vercel Git integration is off, D-23), confirm the Vercel deployment
 - On the live URL: fresh browser → no visible login step (confirms Turnstile works in production); add the URL to the README
 
 ## Context
