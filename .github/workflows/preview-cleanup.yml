@@ -51,6 +51,8 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           TARGET_REF: ${{ inputs.ref || github.event.pull_request.head.ref }}
+          # Empty for a manual run, which is branch-wide by intent.
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
         run: |
           set -euo pipefail
 
@@ -89,7 +91,20 @@ jobs:
           # Guard 2 of 3: never a production deployment, whatever the ref filter
           # returned. Guard 3 is `--safe` in the next step, which asks the API
           # whether the deployment currently holds an alias.
-          jq '[.deployments[] | select(.target != "production")]' deployments.json > candidates.json
+          #
+          # On a merge, also never a deployment created after the PR was merged:
+          # the selector is the branch *name*, so a delayed or repeated run would
+          # otherwise take previews of a later PR that reused the name. A
+          # deployment without a creation time is excluded rather than assumed old.
+          merged_at_ms=0
+          if [ -n "$MERGED_AT" ]; then
+            merged_at_ms=$(( $(date -d "$MERGED_AT" +%s) * 1000 ))
+          fi
+          jq --argjson mergedAtMs "$merged_at_ms" '
+            [.deployments[]
+             | select(.target != "production")
+             | select($mergedAtMs == 0 or ((.createdAt // .created // 1e18) <= $mergedAtMs))]
+          ' deployments.json > candidates.json
           count=$(jq 'length' candidates.json)
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
