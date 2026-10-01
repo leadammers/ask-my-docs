@@ -59,13 +59,12 @@ The nine policies that call it are unchanged. Revoking a code therefore closes e
 
 ### Claiming a session
 
-`public.claim_demo_session(p_code_hash text, p_user_id uuid, p_ttl interval) returns text`, `security definer`, `search_path = ''`, executable by `service_role` only (revoked from `public`, `anon`, `authenticated`). One transaction:
+`public.claim_demo_session(p_code_hash text, p_user_id uuid, p_ttl_seconds integer) returns text`, `security definer`, `search_path = ''`, executable by `service_role` only (revoked from `public`, `anon`, `authenticated`). One transaction:
 
 1. `select … from demo_codes where code_hash = p_code_hash for update` (the lock serialises concurrent claims on the same code, so the seat count cannot be raced).
 2. No row, `revoked_at` set, or `expires_at <= now()` → return `'invalid'`.
-3. If an entitlement for `p_user_id` on this code already exists, refresh its `expires_at` and return `'ok'` (re-login on the same session uses no seat).
-4. Count that code's live entitlements (`expires_at > now()`). If the count is `>= max_sessions` → return `'seats_full'`.
-5. Upsert the entitlement (`user_id`, `code_id`, `expires_at = now() + p_ttl`) → `'ok'`.
+3. Count that code's live entitlements (`expires_at > now()`) _excluding `p_user_id`'s own_, so a re-login on the same session uses no extra seat. If the count is `>= max_sessions` → return `'seats_full'`.
+4. Upsert the entitlement (`user_id`, `code_id`, `expires_at = now() + make_interval(secs => p_ttl_seconds)`) → `'ok'`.
 
 Returning a status string, not raising, keeps the action's error mapping trivial and leaks nothing through SQL error text. A user who re-enters a _different_ valid code replaces their entitlement's `code_id` (upsert on `user_id`) and consumes a seat on the new code only.
 

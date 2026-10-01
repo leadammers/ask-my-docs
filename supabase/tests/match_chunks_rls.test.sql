@@ -10,8 +10,10 @@ insert into auth.users (id, email) values
 
 -- A creates a notebook below, which needs a live demo entitlement
 -- (20260929114828). B needs none: it only ever reads.
-insert into demo_entitlements (user_id, expires_at)
-values ('11111111-1111-1111-1111-111111111111', now() + interval '8 hours');
+insert into demo_codes (id, label, code_hash, expires_at) values
+  ('c0de0000-0000-0000-0000-000000000001', 'fixture', 'hash-fixture', now() + interval '7 days');
+insert into demo_entitlements (user_id, code_id, expires_at)
+values ('11111111-1111-1111-1111-111111111111', 'c0de0000-0000-0000-0000-000000000001', now() + interval '8 hours');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111"}';
