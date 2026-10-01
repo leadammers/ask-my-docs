@@ -61,10 +61,10 @@ GitHub Actions is the **only** thing that deploys; the Vercel Git integration is
 
 | Event | What runs |
 |---|---|
-| Pull request | lint, typecheck, unit, integration, pgTAP, build, Playwright e2e, secret and dependency scans, then a **preview** deployment (not for `dev`/`main` heads or Dependabot) |
+| Pull request targeting `dev` or `main` | lint, typecheck, unit, integration, pgTAP, build, Playwright e2e, secret and dependency scans, then a **preview** deployment for in-repository PRs whose head is not `dev`/`main` and whose author is not Dependabot |
 | Push to `dev` | the same checks, then a deployment to the dev alias |
 | Push to `main` | the same checks, then a **production** deployment |
-| PR merged | `preview-cleanup` deletes that branch's preview deployments (production and aliased deployments are never touched) |
+| PR merged | for an in-repository, non-Dependabot PR whose head is not `dev`/`main`, `preview-cleanup` deletes that branch's most recent (up to 100) pre-merge preview deployments; production and aliased deployments are never touched |
 
 ---
 

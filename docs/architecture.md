@@ -268,7 +268,7 @@ The Vercel Git integration is disconnected (and `vercel.json` sets `git.deployme
 | PR from an in-repo branch (not Dependabot, head not `dev`/`main`) | `deploy-preview` | `preview` | preview |
 | Push to `dev` | `deploy-dev` | `dev` | preview, aliased to `VERCEL_DEV_ALIAS` |
 | Push to `main` | `deploy-prod` | `prod` | production |
-| PR merged | `preview-cleanup.yml` | — | deletes that branch's previews (`--safe`, never `production`, never created after the merge) |
+| PR merged | `preview-cleanup.yml` | — | deletes that branch's 100 most recent previews (`--safe`, never `production`, never created after the merge) |
 
 A dev → main release PR does not build a preview: `dev` already has its own deployment, and `main` gets one on merge. Hosted migrations are still a human step and must land with the deploy that needs them (`tasks/README.md`).
 
