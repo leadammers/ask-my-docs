@@ -40,9 +40,7 @@ function sourceItem(page: Page, title: string) {
   });
 }
 
-test('a text PDF shows progress, becomes ready, and can be deleted with its notebook', async ({
-  browser,
-}) => {
+test('a text PDF becomes ready, and can be deleted with its notebook', async ({ browser }) => {
   const page = await freshUser(browser);
   await createNotebook(page, 'PDF notebook');
   await expect(page.getByText(/sent to Google Gemini/)).toBeVisible();
@@ -50,7 +48,8 @@ test('a text PDF shows progress, becomes ready, and can be deleted with its note
   await page.getByLabel('Upload PDF').setInputFiles(path.join(FIXTURES, 'sample.pdf'));
 
   const item = sourceItem(page, 'sample');
-  await expect(item.getByText(/Pending|Processing/)).toBeVisible();
+  // Pending/Processing is too short-lived to assert: with the AI mocked, ingest can
+  // finish before the list first renders, so the item appears already Ready.
   await expect(item.getByText('Ready')).toBeVisible({ timeout: 30_000 });
   await expect(item.getByText('2 pages')).toBeVisible();
 

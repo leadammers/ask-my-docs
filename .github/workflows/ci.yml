@@ -16,6 +16,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A dev -> main PR re-runs the SHA the push to dev already tested; skip the duplicate.
+    if: github.head_ref != 'dev'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -43,6 +45,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    if: github.head_ref != 'dev'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -63,6 +66,7 @@ jobs:
   # auth and storage schemas and our migrations applied — all these tests need.
   db-test:
     runs-on: ubuntu-latest
+    if: github.head_ref != 'dev'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -131,7 +135,7 @@ jobs:
 
       - name: Run E2E tests
         env:
-          DEMO_PASSWORD: ci-e2e-demo-password
+          DEMO_CODE_PEPPER: ci-e2e-demo-code-pepper-not-a-real-secret-32b
           DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
           AI_PROVIDER: mock
           # SKIP_ENV_VALIDATION leaves unset vars undefined; ingest (T05) and
@@ -159,6 +163,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    if: github.head_ref != 'dev'
     permissions:
       contents: read
     steps:
@@ -200,10 +205,14 @@ jobs:
     # `secrets.VERCEL_TOKEN` is empty there and the job can only fail: it turns the
     # PR red and registers a `preview` deployment that never builds. Gated on the
     # PR's author rather than `github.actor`, which becomes whoever re-runs it.
+    # `dev` and `main` are deployed by their own push jobs below; a dev → main
+    # release PR would otherwise build the same tree a second time as a preview.
     if: |
       github.event_name == 'pull_request'
       && github.event.pull_request.head.repo.full_name == github.repository
       && github.event.pull_request.user.login != 'dependabot[bot]'
+      && github.event.pull_request.head.ref != 'main'
+      && github.event.pull_request.head.ref != 'dev'
     runs-on: ubuntu-latest
     needs: [build, test, db-test, e2e, security]
     environment:

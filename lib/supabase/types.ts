@@ -156,20 +156,61 @@ export type Database = {
           },
         ]
       }
+      demo_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          label: string
+          max_sessions: number
+          revoked_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          label: string
+          max_sessions?: number
+          revoked_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string
+          max_sessions?: number
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
       demo_entitlements: {
         Row: {
+          code_id: string
           expires_at: string
           user_id: string
         }
         Insert: {
+          code_id: string
           expires_at: string
           user_id: string
         }
         Update: {
+          code_id?: string
           expires_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "demo_entitlements_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "demo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -433,6 +474,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_demo_session: {
+        Args: { p_code_hash: string; p_ttl_seconds: number; p_user_id: string }
+        Returns: string
+      }
       claim_retention_user: {
         Args: {
           p_inactive_before: string

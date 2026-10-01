@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDemoToken, verifyDemoPassword, verifyDemoToken } from '@/lib/demo-gate';
+import { createDemoToken, verifyDemoToken } from '@/lib/demo-gate';
 
 const SECRET = 'a'.repeat(32);
 
@@ -37,19 +37,5 @@ describe('createDemoToken / verifyDemoToken', () => {
     expect(await verifyDemoToken(SECRET, undefined, now)).toBe(false);
     expect(await verifyDemoToken(SECRET, 'not-a-token', now)).toBe(false);
     expect(await verifyDemoToken(SECRET, '', now)).toBe(false);
-  });
-});
-
-describe('verifyDemoPassword', () => {
-  it('accepts the correct password', async () => {
-    expect(await verifyDemoPassword(SECRET, 'correct-horse', 'correct-horse')).toBe(true);
-  });
-
-  it('rejects an incorrect password', async () => {
-    expect(await verifyDemoPassword(SECRET, 'wrong', 'correct-horse')).toBe(false);
-  });
-
-  it('rejects a password differing only in length', async () => {
-    expect(await verifyDemoPassword(SECRET, 'correct-horse-extra', 'correct-horse')).toBe(false);
   });
 });

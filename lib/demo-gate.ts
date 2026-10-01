@@ -1,7 +1,7 @@
 export const DEMO_COOKIE_NAME = 'demo_session';
 export const DEMO_SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
-async function hmacHex(secret: string, message: string): Promise<string> {
+export async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -16,7 +16,7 @@ async function hmacHex(secret: string, message: string): Promise<string> {
 }
 
 // Fixed-length digests before comparing, so an early length mismatch never
-// leaks how many characters of the secret/password were guessed correctly.
+// leaks how many characters of the secret were guessed correctly.
 function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
@@ -47,16 +47,4 @@ export async function verifyDemoToken(
 
   const expected = await hmacHex(secret, expiresAtRaw);
   return timingSafeEqualHex(expected, signature);
-}
-
-export async function verifyDemoPassword(
-  secret: string,
-  candidate: string,
-  expected: string,
-): Promise<boolean> {
-  const [candidateHash, expectedHash] = await Promise.all([
-    hmacHex(secret, candidate),
-    hmacHex(secret, expected),
-  ]);
-  return timingSafeEqualHex(candidateHash, expectedHash);
 }

@@ -3,7 +3,7 @@
 -- hosted project can't silently drift apart again (see
 -- 20260927130918_explicit_grants.sql for why this matters).
 begin;
-select plan(30);
+select plan(36);
 
 select table_privs_are('public', 'app_settings', 'anon', array[]::text[], 'anon has no privileges on app_settings');
 select table_privs_are('public', 'app_settings', 'authenticated', array['SELECT'], 'authenticated can only select app_settings');
@@ -47,6 +47,14 @@ select table_privs_are('public', 'usage_events', 'service_role', array['SELECT',
 select table_privs_are('public', 'demo_entitlements', 'anon', array[]::text[], 'anon has no privileges on demo_entitlements');
 select table_privs_are('public', 'demo_entitlements', 'authenticated', array[]::text[], 'authenticated has no privileges on demo_entitlements');
 select table_privs_are('public', 'demo_entitlements', 'service_role', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'service_role has full DML on demo_entitlements');
+
+select table_privs_are('public', 'demo_codes', 'anon', array[]::text[], 'anon has no privileges on demo_codes');
+select table_privs_are('public', 'demo_codes', 'authenticated', array[]::text[], 'authenticated has no privileges on demo_codes');
+select table_privs_are('public', 'demo_codes', 'service_role', array['SELECT', 'INSERT', 'UPDATE'], 'service_role can read, issue and revoke codes');
+
+select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'anon', array[]::text[], 'anon cannot execute claim_demo_session');
+select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'authenticated', array[]::text[], 'authenticated cannot execute claim_demo_session');
+select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'service_role', array['EXECUTE'], 'service_role executes claim_demo_session');
 
 select * from finish();
 rollback;
