@@ -168,5 +168,7 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);
+  // The operator is the only reader and the cause (a PostgREST error) holds no secrets.
+  if (error instanceof Error && error.cause) console.error('Cause:', error.cause);
   process.exit(1);
 });
