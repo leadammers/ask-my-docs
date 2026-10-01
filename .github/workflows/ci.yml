@@ -131,7 +131,7 @@ jobs:
 
       - name: Run E2E tests
         env:
-          DEMO_PASSWORD: ci-e2e-demo-password
+          DEMO_CODE_PEPPER: ci-e2e-demo-code-pepper-not-a-real-secret-32b
           DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
           AI_PROVIDER: mock
           # SKIP_ENV_VALIDATION leaves unset vars undefined; ingest (T05) and

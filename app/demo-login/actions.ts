@@ -2,19 +2,12 @@
 
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
-import {
-  DEMO_COOKIE_NAME,
-  DEMO_SESSION_DURATION_MS,
-  createDemoToken,
-  verifyDemoPassword,
-} from '@/lib/demo-gate';
+import { demoCodeInputSchema, hashDemoCode } from '@/lib/demo-codes';
+import { DEMO_COOKIE_NAME, DEMO_SESSION_DURATION_MS, createDemoToken } from '@/lib/demo-gate';
 import { isRateLimited, recordAttempt } from '@/lib/demo-login-rate-limit';
 import { env } from '@/lib/env';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-
-const passwordSchema = z.string().min(1).max(200);
 
 export async function login(formData: FormData): Promise<void> {
   const headerList = await headers();
@@ -25,17 +18,8 @@ export async function login(formData: FormData): Promise<void> {
   }
   recordAttempt(clientKey);
 
-  const parsedPassword = passwordSchema.safeParse(formData.get('password'));
-  if (!parsedPassword.success) {
-    redirect('/demo-login?error=1');
-  }
-
-  const isValid = await verifyDemoPassword(
-    env.DEMO_COOKIE_SECRET,
-    parsedPassword.data,
-    env.DEMO_PASSWORD,
-  );
-  if (!isValid) {
+  const parsedCode = demoCodeInputSchema.safeParse(formData.get('code'));
+  if (!parsedCode.success) {
     redirect('/demo-login?error=1');
   }
 
@@ -50,18 +34,25 @@ export async function login(formData: FormData): Promise<void> {
     redirect('/demo-login?error=no_session');
   }
 
-  const now = Date.now();
-  const { error: entitlementError } = await createAdminClient()
-    .from('demo_entitlements')
-    .upsert({
-      user_id: user.id,
-      expires_at: new Date(now + DEMO_SESSION_DURATION_MS).toISOString(),
-    });
-  if (entitlementError) {
+  // The code is only ever hashed and matched against a unique column; the user
+  // id comes from the server-resolved session, never from the form (D-24).
+  const codeHash = await hashDemoCode(env.DEMO_CODE_PEPPER, parsedCode.data);
+  const { data: outcome, error: claimError } = await createAdminClient().rpc('claim_demo_session', {
+    p_code_hash: codeHash,
+    p_user_id: user.id,
+    p_ttl_seconds: DEMO_SESSION_DURATION_MS / 1000,
+  });
+  if (claimError) {
+    redirect('/demo-login?error=1');
+  }
+  if (outcome === 'seats_full') {
+    redirect('/demo-login?error=seats');
+  }
+  if (outcome !== 'ok') {
     redirect('/demo-login?error=1');
   }
 
-  const token = await createDemoToken(env.DEMO_COOKIE_SECRET, now);
+  const token = await createDemoToken(env.DEMO_COOKIE_SECRET);
   const cookieStore = await cookies();
   cookieStore.set(DEMO_COOKIE_NAME, token, {
     httpOnly: true,

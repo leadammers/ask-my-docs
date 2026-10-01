@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const REQUIRED_KEYS = [
-  'DEMO_PASSWORD',
+  'DEMO_CODE_PEPPER',
   'DEMO_COOKIE_SECRET',
   'SUPABASE_SERVICE_ROLE_KEY',
   'AI_PROVIDER',
@@ -23,7 +23,7 @@ const REQUIRED_KEYS = [
 
 function setValidEnv() {
   Object.assign(process.env, {
-    DEMO_PASSWORD: 'test-password',
+    DEMO_CODE_PEPPER: 'p'.repeat(32),
     DEMO_COOKIE_SECRET: 'x'.repeat(32),
     SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
     AI_PROVIDER: 'mock',
@@ -62,7 +62,7 @@ describe('env', () => {
   });
 
   it('throws naming a missing variable when required vars are absent', async () => {
-    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_PASSWORD/);
+    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_CODE_PEPPER/);
   });
 
   it('treats a blank optional variable as unset', async () => {
@@ -73,8 +73,14 @@ describe('env', () => {
 
   it('still rejects a blank required variable, naming it', async () => {
     setValidEnv();
-    process.env.DEMO_PASSWORD = '';
-    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_PASSWORD/);
+    process.env.DEMO_CODE_PEPPER = '';
+    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_CODE_PEPPER/);
+  });
+
+  it('rejects a pepper shorter than 32 characters', async () => {
+    setValidEnv();
+    process.env.DEMO_CODE_PEPPER = 'short';
+    await expect(import('@/lib/env')).rejects.toThrow(/DEMO_CODE_PEPPER/);
   });
 
   it('does not throw when SKIP_ENV_VALIDATION=1 is set', async () => {
