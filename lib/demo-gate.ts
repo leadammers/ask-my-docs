@@ -1,7 +1,7 @@
 export const DEMO_COOKIE_NAME = 'demo_session';
 export const DEMO_SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
-async function hmacHex(secret: string, message: string): Promise<string> {
+export async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
