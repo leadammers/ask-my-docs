@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 
 const serverShape = z.object({
-  DEMO_PASSWORD: z.string().min(1),
+  DEMO_CODE_PEPPER: z.string().min(32),
   DEMO_COOKIE_SECRET: z.string().min(32),
 
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),

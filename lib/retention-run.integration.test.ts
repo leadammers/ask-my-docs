@@ -36,9 +36,24 @@ async function signInAnonymously(): Promise<TestUser> {
 
 async function addDataFor(user: TestUser): Promise<void> {
   // Creating a notebook needs a live demo entitlement (20260929114828) — this
-  // is what app/demo-login/actions.ts writes once the password is accepted.
+  // is what app/demo-login/actions.ts writes once a code is accepted — and an
+  // entitlement needs the code that granted it (20261001120000).
+  const { data: code, error: codeError } = await admin
+    .from('demo_codes')
+    .upsert(
+      {
+        label: 'retention-integration-test',
+        code_hash: 'retention-integration-test',
+        expires_at: new Date(Date.now() + DEMO_SESSION_DURATION_MS).toISOString(),
+      },
+      { onConflict: 'code_hash' },
+    )
+    .select('id')
+    .single();
+  if (codeError) throw codeError;
   const { error: entitlementError } = await admin.from('demo_entitlements').upsert({
     user_id: user.id,
+    code_id: code.id,
     expires_at: new Date(Date.now() + DEMO_SESSION_DURATION_MS).toISOString(),
   });
   if (entitlementError) throw entitlementError;

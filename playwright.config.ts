@@ -6,8 +6,8 @@ const baseURL = `http://localhost:${PORT}`;
 
 export const DEMO_AUTH_STATE = 'playwright/.auth/demo.json';
 
-// Locally, e2e needs values that must differ from normal dev (DEMO_PASSWORD
-// for the setup test to type in, AI_PROVIDER=mock so a real Gemini key in
+// Locally, e2e needs values that must differ from normal dev (DEMO_CODE_PEPPER
+// so the setup test can hash the code it mints, AI_PROVIDER=mock so a real Gemini key in
 // .env.local is never called) — kept in .env.test.local, gitignored, copied
 // from .env.test.example. Node doesn't override already-set process.env vars
 // from a later file load, so this wins over whatever `pnpm dev` itself would
@@ -48,7 +48,7 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm build && pnpm start' : 'pnpm dev',
     url: baseURL,
     // Whatever answers on :3000 locally is usually `pnpm dev`, which reads
-    // .env.local — a different AI provider and demo password than the test
+    // .env.local — a different AI provider and demo pepper than the test
     // session assumes, so the run fails later, somewhere confusing. Fail at
     // startup instead: stop `pnpm dev` before `pnpm test:e2e`.
     reuseExistingServer: false,

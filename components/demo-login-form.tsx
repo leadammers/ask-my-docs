@@ -9,7 +9,7 @@ type DemoLoginFormProps = {
 };
 
 /**
- * The password is only accepted once there is a session to key the demo
+ * The code is only accepted once there is a session to key the demo
  * entitlement to (app/demo-login/actions.ts), and AuthGate signs the visitor
  * in alongside this form rather than before it — so the submit stays disabled
  * until that session exists. Without the wait, a quick submit lands on
@@ -42,29 +42,41 @@ export function DemoLoginForm({ action, error }: DemoLoginFormProps) {
 
   return (
     <form action={action} className="flex w-full max-w-sm flex-col gap-4">
-      <h1 className="text-xl font-semibold">Enter the demo password</h1>
+      <h1 className="text-xl font-semibold">Enter your access code</h1>
       {error === 'rate_limited' ? (
         <p className="text-destructive text-sm">
           Too many attempts. Please wait a few minutes and try again.
         </p>
       ) : error === 'no_session' ? (
         <p className="text-destructive text-sm">
-          Your session wasn&apos;t ready yet. Please reload the page and enter the password again.
+          Your session wasn&apos;t ready yet. Please reload the page and enter the code again.
+        </p>
+      ) : error === 'seats' ? (
+        <p className="text-destructive text-sm">
+          This code is already in use on its maximum number of devices. Ask for a new one if you
+          need more.
+        </p>
+      ) : error === 'unavailable' ? (
+        <p className="text-destructive text-sm">
+          Something went wrong on our side. Please try again in a moment.
         </p>
       ) : error ? (
-        <p className="text-destructive text-sm">That password isn&apos;t correct.</p>
+        <p className="text-destructive text-sm">That code is invalid or has expired.</p>
       ) : null}
-      <label htmlFor="password" className="text-sm font-medium">
-        Password
+      <label htmlFor="code" className="text-sm font-medium">
+        Access code
       </label>
       <input
-        id="password"
-        type="password"
-        name="password"
+        id="code"
+        type="text"
+        name="code"
         autoFocus
         required
-        maxLength={200}
-        className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+        maxLength={64}
+        autoComplete="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        className="border-input bg-background rounded-md border px-3 py-2 font-mono text-sm"
       />
       <button
         type="submit"
