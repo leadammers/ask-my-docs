@@ -53,10 +53,12 @@ Every task file has a **Your part** section unless it is `hand-off`.
 
 Development runs against the **local** Supabase stack. Production is the hosted project and is only touched by you:
 
+0. Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env and remove `DEMO_PASSWORD` (D-24)
 1. Review new migrations in `supabase/migrations/`
 2. `supabase db push` (hosted project, linked in T00)
 3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first
 4. If seed data changed (T08c, T09, T11): run `pnpm script scripts/seed-demo.ts` with production env values
-5. Smoke-test the live URL in an incognito window (`ask-my-docs-demo.vercel.app`, demo password required)
+5. Issue a code per reviewer: `scripts/demo-codes.ts create "<label>"` with production env values (see the header of the script), and send each code out of band
+6. Smoke-test the live URL in an incognito window (`ask-my-docs-demo.vercel.app`) with one of the codes
 
 Release after T03 (first deploy), T06, T08, and after every extra that adds a migration or seed data. Deploy early and often; a late deployment surprise is the biggest schedule risk.

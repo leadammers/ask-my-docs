@@ -11,7 +11,7 @@
 
 The reviewers will judge three things, in this order:
 
-1. **Does it work live?** They will click the deployment link. First load must be fast, no account or sign-up, no broken states. The only gate is the shared demo password (D-16), handed out on request.
+1. **Does it work live?** They will click the deployment link. First load must be fast, no account or sign-up, no broken states. The only gate is a per-reviewer access code (D-24), handed out on request.
 2. **How did she approach it?** The task says AI tools are explicitly wanted and they want to *see how she works*. The repo itself — scope, decisions, task files, agent instructions, commit history — is evidence of the process. `docs/ai-workflow.md` makes that explicit.
 3. **Is the engineering sound?** Grounded answers with real citations, sensible architecture, security awareness, some measurement of quality.
 
