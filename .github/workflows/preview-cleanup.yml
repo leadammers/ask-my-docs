@@ -113,7 +113,7 @@ jobs:
             echo
             echo "$count candidate(s):"
             echo
-            jq -r '.[] | "- \`\(.id)\` \(.url) — target \(.target // "preview"), state \(.state)"' candidates.json
+            jq -r '.[] | "- `\(.id)` \(.url) — target \(.target // "preview"), state \(.state)"' candidates.json
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice::$count preview deployment(s) matched ref $TARGET_REF"
 
