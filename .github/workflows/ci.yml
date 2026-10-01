@@ -82,7 +82,25 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    needs: build
+    # No `needs: build`: lint/typecheck/build run alongside instead of ahead of it.
+    # A lint failure still fails the PR; it just no longer saves the e2e minutes.
+    env:
+      DEMO_CODE_PEPPER: ci-e2e-demo-code-pepper-not-a-real-secret-32b
+      DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
+      AI_PROVIDER: mock
+      # SKIP_ENV_VALIDATION leaves unset vars undefined; ingest (T05) and
+      # chat (T07) read these limits and the embedding/similarity
+      # settings at request time.
+      AI_CHAT_MODEL: mock-chat
+      AI_EMBEDDING_MODEL: mock-embedding
+      AI_EMBEDDING_DIMENSIONS: 768
+      MIN_VECTOR_SIMILARITY: 0.5
+      AI_GLOBAL_DAILY_CAP: 500
+      RATE_LIMIT_CHAT_PER_MIN: 10
+      RATE_LIMIT_INGEST_PER_HOUR: 20
+      RATE_LIMIT_AUDIO_PER_DAY: 3
+      MAX_UPLOAD_MB: 10
+      MAX_SOURCES_PER_NOTEBOOK: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -104,9 +122,10 @@ jobs:
       # instance in these tests (anonymous sign-in, notebooks CRUD), so the
       # webServer step below needs real project keys, not just SKIP_ENV_VALIDATION.
       - name: Start local Supabase and export its keys
+        # `start` applies the migrations on a fresh database (there is no seed
+        # file), so no `db reset`. Skipped services are ones the tests never call.
         run: |
-          supabase start
-          supabase db reset
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '"')"
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')"
@@ -133,24 +152,20 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
+      - name: Cache Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**', 'lib/**', 'components/**', 'proxy.ts', 'next.config.ts') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # Built here, after the Supabase keys are exported: NEXT_PUBLIC_* are inlined
+      # into the client bundle, so a build from the `build` job would not work.
+      - name: Build app
+        run: pnpm build
+
       - name: Run E2E tests
-        env:
-          DEMO_CODE_PEPPER: ci-e2e-demo-code-pepper-not-a-real-secret-32b
-          DEMO_COOKIE_SECRET: ci-e2e-demo-cookie-secret-not-a-real-secret-32b
-          AI_PROVIDER: mock
-          # SKIP_ENV_VALIDATION leaves unset vars undefined; ingest (T05) and
-          # chat (T07) read these limits and the embedding/similarity
-          # settings at request time.
-          AI_CHAT_MODEL: mock-chat
-          AI_EMBEDDING_MODEL: mock-embedding
-          AI_EMBEDDING_DIMENSIONS: 768
-          MIN_VECTOR_SIMILARITY: 0.5
-          AI_GLOBAL_DAILY_CAP: 500
-          RATE_LIMIT_CHAT_PER_MIN: 10
-          RATE_LIMIT_INGEST_PER_HOUR: 20
-          RATE_LIMIT_AUDIO_PER_DAY: 3
-          MAX_UPLOAD_MB: 10
-          MAX_SOURCES_PER_NOTEBOOK: 10
         run: pnpm test:e2e
 
       - name: Upload Playwright report
