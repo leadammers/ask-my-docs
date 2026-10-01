@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Sheet,
   SheetDescription,
@@ -37,6 +37,13 @@ type CitationDrawerProps = {
 /** Highlights the quote inside the chunk text; markup is never involved (security.md §9). */
 function Passage({ content, quote }: { content: string; quote: string }): React.JSX.Element {
   const range = findQuoteRange(content, quote);
+  const markRef = useRef<HTMLElement>(null);
+
+  // The popup is the scroll container, so a quote deep in a long chunk starts
+  // below the fold; bring it into view once the passage has rendered.
+  useEffect(() => {
+    markRef.current?.scrollIntoView({ block: 'center' });
+  }, [content, quote]);
 
   if (range === null) {
     return (
@@ -52,7 +59,9 @@ function Passage({ content, quote }: { content: string; quote: string }): React.
   return (
     <p className="text-sm leading-relaxed whitespace-pre-wrap">
       {content.slice(0, range.start)}
-      <mark className="bg-primary/20 rounded-sm">{content.slice(range.start, range.end)}</mark>
+      <mark ref={markRef} className="bg-primary/20 rounded-sm">
+        {content.slice(range.start, range.end)}
+      </mark>
       {content.slice(range.end)}
     </p>
   );
