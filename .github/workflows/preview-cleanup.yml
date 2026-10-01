@@ -1,0 +1,149 @@
+name: Preview cleanup
+
+# Previews are created by exactly one thing now: the `deploy-preview` job in
+# ci.yml, for in-repo, non-Dependabot PRs (D-23 — the Vercel Git integration is
+# off). This workflow deletes that preview again once its branch is merged.
+#
+# Deliberately not a job in ci.yml: its `pull_request` trigger carries no
+# `types:`, so adding `closed` there would re-run build/test/db-test/e2e on
+# every merge.
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch whose preview deployments to delete
+        required: true
+      dry_run:
+        description: Report what would be deleted, delete nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  delete-previews:
+    # Merged PRs only. A fork PR never got a preview (the repo gate on
+    # `deploy-preview`), a Dependabot run gets no secrets, and `dev`/`main` are
+    # excluded by rule: a dev → main merge must not sweep dev's own preview.
+    if: |
+      github.event_name == 'workflow_dispatch'
+      || (github.event.action == 'closed'
+          && github.event.pull_request.merged == true
+          && github.event.pull_request.head.repo.full_name == github.repository
+          && github.event.pull_request.user.login != 'dependabot[bot]'
+          && github.event.pull_request.head.ref != 'main'
+          && github.event.pull_request.head.ref != 'dev')
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout and no pnpm: this job must execute nothing from the branch it
+      # is cleaning up after. The Vercel credentials are repository-level, so no
+      # `environment:` is needed either.
+      - name: Install Vercel CLI
+        run: npm install --global vercel@60.0.1 --ignore-scripts
+
+      - name: List the branch's preview deployments
+        id: list
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          TARGET_REF: ${{ inputs.ref || github.event.pull_request.head.ref }}
+          # Empty for a manual run, which is branch-wide by intent.
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
+        run: |
+          set -euo pipefail
+
+          # Guard 1 of 3: never the two branches whose deployments are kept by rule.
+          case "$TARGET_REF" in
+            main | dev)
+              echo "::error::refusing to touch deployments built from $TARGET_REF"
+              exit 1
+              ;;
+            '')
+              echo "::error::no target branch to clean up"
+              exit 1
+              ;;
+            # A branch name reaches this step from the event payload. The gate in
+            # `if:` already restricts runs to branches of this repository, but the
+            # value is validated at the boundary anyway — it ends up in a CLI
+            # argument.
+            *[!A-Za-z0-9._/-]*)
+              echo "::error::unexpected characters in branch name"
+              exit 1
+              ;;
+          esac
+
+          # These two variables are what link the CLI to the project. Without
+          # them `vercel ls` lists every project in the scope — and this job
+          # would then be picking deployment ids from other projects.
+          : "${VERCEL_ORG_ID:?empty — refusing to list across the whole scope}"
+          : "${VERCEL_PROJECT_ID:?empty — refusing to list across the whole scope}"
+
+          # `-m` becomes a `meta-<key>` query parameter, filtered server-side.
+          # `--json` suppresses the spinner and prints {contextName, deployments,
+          # pagination}; `--limit` accepts 1-100.
+          vercel ls --json --limit 100 -m "githubCommitRef=$TARGET_REF" \
+            --token="$VERCEL_TOKEN" > deployments.json
+
+          # Guard 2 of 3: never a production deployment, whatever the ref filter
+          # returned. Guard 3 is `--safe` in the next step, which asks the API
+          # whether the deployment currently holds an alias.
+          #
+          # On a merge, also never a deployment created after the PR was merged:
+          # the selector is the branch *name*, so a delayed or repeated run would
+          # otherwise take previews of a later PR that reused the name. A
+          # deployment without a creation time is excluded rather than assumed old.
+          merged_at_ms=0
+          if [ -n "$MERGED_AT" ]; then
+            merged_at_ms=$(( $(date -d "$MERGED_AT" +%s) * 1000 ))
+          fi
+          jq --argjson mergedAtMs "$merged_at_ms" '
+            [.deployments[]
+             | select(.target != "production")
+             | select($mergedAtMs == 0 or ((.createdAt // .created // 1e18) <= $mergedAtMs))]
+          ' deployments.json > candidates.json
+          count=$(jq 'length' candidates.json)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Previews for \`$TARGET_REF\`"
+            echo
+            echo "$count candidate(s):"
+            echo
+            jq -r '.[] | "- \`\(.id)\` \(.url) — target \(.target // "preview"), state \(.state)"' candidates.json
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::$count preview deployment(s) matched ref $TARGET_REF"
+
+          # The meta key is the one piece here that is derived from the API shape
+          # rather than observed on a real deployment. If it turns out to be
+          # something else, this prints the actual keys instead of leaving the
+          # accumulation invisible.
+          if [ "$count" = "0" ]; then
+            echo "::warning::no deployment matched -m githubCommitRef=$TARGET_REF; newest deployments and their refs follow"
+            vercel ls --json --limit 5 --token="$VERCEL_TOKEN" \
+              | jq -r '.deployments[] | "  \(.id)  ref=\(.meta.githubCommitRef // "?")  sha=\(.meta.githubCommitSha // "?")  \(.url)"'
+          fi
+
+      - name: Delete them
+        if: steps.list.outputs.count != '0'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # A merge always deletes; a manual run defaults to a dry run. Compared
+          # as a string, because a boolean input arrives as one.
+          DRY_RUN: ${{ github.event_name == 'pull_request' && 'false' || inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::notice::dry run — nothing deleted"
+            exit 0
+          fi
+
+          mapfile -t ids < <(jq -r '.[].id' candidates.json)
+          echo "deleting ${#ids[@]} deployment(s)"
+          vercel remove "${ids[@]}" --yes --safe --token="$VERCEL_TOKEN"
