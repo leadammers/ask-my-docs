@@ -6,7 +6,7 @@ A [NotebookLM](https://notebooklm.google/)–style app for adding documents to n
 >
 > See the [implementation plan](tasks/README.md) for current progress.
 
-**Live demo:** [ask-my-docs-demo.vercel.app](https://ask-my-docs-demo.vercel.app) · 🔐 Password required ([request access](mailto:REPLACE_WITH_FORWARDING_ALIAS?subject=ask-my-docs%20demo%20access))
+**Live demo:** [ask-my-docs-demo.vercel.app](https://ask-my-docs-demo.vercel.app) · 🔐 Password required ([request access](mailto:github.negative013@passinbox.com?subject=ask-my-docs%20demo%20access%20request&body=Hi%2C%0A%0AI%27d%20like%20to%20try%20the%20ask-my-docs%20demo%20%28https%3A//ask-my-docs-demo.vercel.app%29.%20Could%20you%20send%20me%20the%20demo%20password%3F%0A%0AName%20/%20company%20%28optional%29%3A%0A%0AThanks%21))
 
 The demo sits behind a shared password so that a public URL cannot burn through the free AI quota. The password buys a database-side entitlement (valid 8 hours), not just a cookie, so the notebook data is not reachable around the app either ([D-16](docs/decisions.md), [D-21](docs/decisions.md)).
 
