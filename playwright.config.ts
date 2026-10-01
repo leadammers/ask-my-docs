@@ -45,7 +45,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI ? 'pnpm build && pnpm start' : 'pnpm dev',
+    command: process.env.CI ? 'pnpm start' : 'pnpm dev',
     url: baseURL,
     // Whatever answers on :3000 locally is usually `pnpm dev`, which reads
     // .env.local — a different AI provider and demo pepper than the test
