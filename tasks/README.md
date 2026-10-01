@@ -55,13 +55,13 @@ Development runs against the **local** Supabase stack. Production is the hosted 
 
 0. Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env. Keep `DEMO_PASSWORD` for now (the old build still needs it); never rotate the pepper later, it invalidates every code (D-24)
 1. Review new migrations in `supabase/migrations/`
-2. `supabase db push` (hosted project, linked in T00)
+2. `supabase db push` (hosted project, linked in T00). **Cutover:** this migration clears entitlements and makes `code_id` required, so the old build's password login fails from here until step 3's deploy is live (keeping `DEMO_PASSWORD` does not help). Do steps 2 and 3 back to back with the PR already approved and green, and not while a reviewer is active. If the deploy fails, fix forward and redeploy; there is nothing to roll back
 3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first. Once it is live, remove `DEMO_PASSWORD` from Vercel
 4. If seed data changed (T08c, T09, T11): run `pnpm script scripts/seed-demo.ts` with production env values
 5. Smoke-test the code path (needs `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and the same `DEMO_CODE_PEPPER` as Vercel, from the Supabase dashboard and your own copy of the pepper, in a throwaway `.env.production.local`; below `CLI` = `pnpm exec tsx --env-file=.env.production.local scripts/demo-codes.ts`):
    1. `CLI create "smoke test" --days 1` — copy the printed code and the id
    2. Open `ask-my-docs-demo.vercel.app` in an incognito window and enter the code at `/demo-login`: you should land on the notebooks page. "Invalid or expired" means the CLI's `DEMO_CODE_PEPPER` differs from Vercel's: fix the env file and repeat
-   3. `CLI revoke <id>`, then reload the incognito window: it should show no notebook data
+   3. `CLI revoke <id>`, then reload the incognito window: the demo notebook should no longer open and creating a notebook should be refused. Notebooks that session already owns stay accessible, which is intended
 6. Issue one code per reviewer: `CLI create "<name>"` (14 days, 3 devices by default). Send each code out of band. A reviewer's seat frees 8 hours after their last entry, so tell them to use one browser
 
 Release after T03 (first deploy), T06, T08, and after every extra that adds a migration or seed data. Deploy early and often; a late deployment surprise is the biggest schedule risk.
