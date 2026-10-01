@@ -1,13 +1,11 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { E2E_DEMO_CODE } from './entitle';
 
 // Signs a brand-new anonymous visitor in end-to-end: passes the demo gate,
 // then waits for AuthGate's silent anonymous sign-in to land — proving
 // neither step shows a visible login form for the notebooks page itself.
 async function signInFreshVisitor(browser: Browser): Promise<Page> {
-  const password = process.env.DEMO_PASSWORD;
-  if (!password) throw new Error('DEMO_PASSWORD must be set to run the E2E tests');
-
   // The chromium project sets `storageState: DEMO_AUTH_STATE` as a context
   // default, and `browser.newContext()` inherits project-level context
   // options unless overridden — so a bare call here would silently reuse the
@@ -16,7 +14,7 @@ async function signInFreshVisitor(browser: Browser): Promise<Page> {
   const page = await context.newPage();
 
   await page.goto('/demo-login');
-  await page.getByLabel('Password').fill(password);
+  await page.getByLabel('Access code').fill(E2E_DEMO_CODE);
   await page.getByRole('button', { name: 'Enter' }).click();
 
   await page.waitForURL('/');
@@ -44,7 +42,7 @@ async function deleteAllNotebooks(page: Page) {
 // that don't need a *distinct* anonymous identity keeps the suite well under
 // that budget: only the isolation test below mints fresh visitors (2 logins),
 // on top of the 1 the setup project already spends and the 1 the demo-gate
-// spec's "wrong password" test spends — 4 of the 5-attempt budget, leaving
+// spec's "wrong code" test spends — 4 of the 5-attempt budget, leaving
 // headroom for a CI retry.
 test.describe.configure({ mode: 'serial' });
 
@@ -53,7 +51,7 @@ test('the notebooks page has no visible login step and passes an accessibility c
 }) => {
   await page.goto('/');
 
-  await expect(page.getByLabel('Password')).toHaveCount(0);
+  await expect(page.getByLabel('Access code')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
 
   const results = await new AxeBuilder({ page }).analyze();
