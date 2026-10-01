@@ -14,13 +14,13 @@ import {
 const PEPPER = 'p'.repeat(32);
 
 describe('generateDemoCode', () => {
-  it('encodes 128 bits as AMD- plus 26 base32 characters in groups of four', () => {
-    expect(generateDemoCode(new Uint8Array(16))).toBe('AMD-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AA');
+  it('encodes 128 bits as AMD- plus 26 Crockford base32 characters in groups of four', () => {
+    expect(generateDemoCode(new Uint8Array(16))).toBe('AMD-0000-0000-0000-0000-0000-0000-00');
   });
 
   it('pads the last 3 bits when every bit is set', () => {
     expect(generateDemoCode(new Uint8Array(16).fill(255))).toBe(
-      'AMD-7777-7777-7777-7777-7777-7777-74',
+      'AMD-ZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZ-ZW',
     );
   });
 
@@ -28,7 +28,8 @@ describe('generateDemoCode', () => {
     const codes = new Set<string>();
     for (let index = 0; index < 50; index++) codes.add(generateDemoCode());
     expect(codes.size).toBe(50);
-    for (const code of codes) expect(code).toMatch(/^AMD-([A-Z2-7]{4}-){6}[A-Z2-7]{2}$/);
+    for (const code of codes)
+      expect(code).toMatch(/^AMD-([0-9A-HJKMNP-TV-Z]{4}-){6}[0-9A-HJKMNP-TV-Z]{2}$/);
   });
 });
 
@@ -38,6 +39,19 @@ describe('normalizeDemoCode', () => {
     expect(normalizeDemoCode('AMD-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AA')).toBe(canonical);
     expect(normalizeDemoCode('  amd aaaa aaaa aaaa aaaa aaaa aaaa aa \n')).toBe(canonical);
     expect(normalizeDemoCode('amd' + 'a'.repeat(26))).toBe(canonical);
+  });
+});
+
+describe('look-alike characters', () => {
+  it('never generates I, L, O or U', () => {
+    for (let index = 0; index < 200; index++) {
+      expect(generateDemoCode().slice('AMD-'.length)).not.toMatch(/[ILOU]/);
+    }
+  });
+
+  it('folds a misread O, I or L to the digit it stands for', () => {
+    expect(normalizeDemoCode('AMD-0O1I-1L00')).toBe('AMD00111100');
+    expect(normalizeDemoCode('amd-oili')).toBe('AMD0111');
   });
 });
 

@@ -48,8 +48,11 @@ Needs Node 22, pnpm (`corepack enable`), Docker and the Supabase CLI. Developmen
 pnpm install
 cp .env.example .env.local   # fill in the Gemini key, or set AI_PROVIDER=mock
 pnpm db:start                # local Supabase in Docker
-pnpm dev                     # http://localhost:3000
+pnpm script scripts/demo-codes.ts create "Local development"   # prints your access code once
+pnpm dev                     # http://localhost:3000, enter the printed code at /demo-login
 ```
+
+`DEMO_CODE_PEPPER` in `.env.local` only hashes codes: it is not a login. Re-run the `create` line after every `pnpm db:reset`, which clears the codes.
 
 Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:test` (pgTAP), `pnpm test:e2e` (Playwright; see [AGENTS.md](AGENTS.md) for the env it needs).
 

@@ -53,12 +53,15 @@ Every task file has a **Your part** section unless it is `hand-off`.
 
 Development runs against the **local** Supabase stack. Production is the hosted project and is only touched by you:
 
-0. Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env and remove `DEMO_PASSWORD` (D-24)
+0. Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env. Keep `DEMO_PASSWORD` for now (the old build still needs it); never rotate the pepper later, it invalidates every code (D-24)
 1. Review new migrations in `supabase/migrations/`
 2. `supabase db push` (hosted project, linked in T00)
-3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first
+3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first. Once it is live, remove `DEMO_PASSWORD` from Vercel
 4. If seed data changed (T08c, T09, T11): run `pnpm script scripts/seed-demo.ts` with production env values
-5. Issue a code per reviewer: `scripts/demo-codes.ts create "<label>"` with production env values (see the header of the script), and send each code out of band
-6. Smoke-test the live URL in an incognito window (`ask-my-docs-demo.vercel.app`) with one of the codes
+5. Smoke-test the code path (needs a production env file, see the header of `scripts/demo-codes.ts`; below `CLI` = `pnpm exec tsx --conditions=react-server --env-file=.env.production.local scripts/demo-codes.ts`):
+   1. `CLI create "smoke test" --days 1` — copy the printed code and the id
+   2. Open `ask-my-docs-demo.vercel.app` in an incognito window and enter the code at `/demo-login`: you should land on the notebooks page. "Invalid or expired" means the CLI's `DEMO_CODE_PEPPER` differs from Vercel's: fix the env file and repeat
+   3. `CLI revoke <id>`, then reload the incognito window: it should show no notebook data
+6. Issue one code per reviewer: `CLI create "<name>"` (14 days, 3 devices by default). Send each code out of band. A reviewer's seat frees 8 hours after their last entry, so tell them to use one browser
 
 Release after T03 (first deploy), T06, T08, and after every extra that adds a migration or seed data. Deploy early and often; a late deployment surprise is the biggest schedule risk.

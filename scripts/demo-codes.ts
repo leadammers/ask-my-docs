@@ -3,12 +3,15 @@
 //   pnpm script scripts/demo-codes.ts list
 //   pnpm script scripts/demo-codes.ts revoke <id>
 //
-// Against production this is a human-only step (D-11): run it with an env file
-// holding the hosted NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and the
-// deployed DEMO_CODE_PEPPER, e.g.
+// Against production this is a human-only step (D-11). The script loads lib/env.ts,
+// so the env file must be the FULL server env (not just three variables), with the
+// hosted NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and the SAME
+// DEMO_CODE_PEPPER as Vercel — a different pepper issues codes that never validate.
+// `vercel env pull .env.production.local --environment=production` produces it:
 //   pnpm exec tsx --conditions=react-server --env-file=.env.production.local \
 //     scripts/demo-codes.ts list
-// `create` prints the code exactly once; only its hash is stored.
+// `create` prints the code exactly once; only its hash is stored. Try every new
+// code on the live site before sending it (see tasks/README.md, release step 5).
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import {
@@ -24,6 +27,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 const DEFAULT_CODE_LIFETIME_DAYS = 14;
 const DEFAULT_MAX_SESSIONS = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// PostgREST caps one response (1000 rows by default), so list reads in pages.
+const PAGE_SIZE = 1000;
 
 const createInputSchema = z.object({
   label: z.string().trim().min(1).max(100),
@@ -60,27 +65,43 @@ async function createCode(args: string[]): Promise<void> {
   console.log(`id:          ${data.id}`);
   console.log(`expires:     ${data.expires_at}`);
   console.log(`max devices: ${input.sessions}`);
+  console.log('Before sending it: enter this code on the live site once (release step 5).');
+}
+
+async function readAllPages<Row>(
+  failureMessage: string,
+  readPage: (from: number, to: number) => PromiseLike<{ data: Row[] | null; error: unknown }>,
+): Promise<Row[]> {
+  const rows: Row[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await readPage(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(failureMessage, { cause: error });
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
 }
 
 async function listCodes(): Promise<void> {
   const client = createAdminClient();
   const [codes, entitlements] = await Promise.all([
-    client
-      .from('demo_codes')
-      .select('id, label, expires_at, revoked_at, max_sessions')
-      .order('created_at'),
-    client.from('demo_entitlements').select('code_id, expires_at'),
+    readAllPages<DemoCodeRow>('Could not list codes', (from, to) =>
+      client
+        .from('demo_codes')
+        .select('id, label, expires_at, revoked_at, max_sessions')
+        .order('created_at')
+        .order('id')
+        .range(from, to),
+    ),
+    readAllPages<DemoEntitlementRow>('Could not read sessions', (from, to) =>
+      client
+        .from('demo_entitlements')
+        .select('code_id, expires_at')
+        .order('user_id')
+        .range(from, to),
+    ),
   ]);
-  if (codes.error) throw new Error('Could not list codes', { cause: codes.error });
-  if (entitlements.error) {
-    throw new Error('Could not read sessions', { cause: entitlements.error });
-  }
 
-  const summaries = summarizeDemoCodes(
-    codes.data satisfies DemoCodeRow[],
-    entitlements.data satisfies DemoEntitlementRow[],
-    new Date(),
-  );
+  const summaries = summarizeDemoCodes(codes, entitlements, new Date());
   console.table(
     summaries.map((summary) => ({
       id: summary.id,

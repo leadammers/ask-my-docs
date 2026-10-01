@@ -56,6 +56,10 @@ export function DemoLoginForm({ action, error }: DemoLoginFormProps) {
           This code is already in use on its maximum number of devices. Ask for a new one if you
           need more.
         </p>
+      ) : error === 'unavailable' ? (
+        <p className="text-destructive text-sm">
+          Something went wrong on our side. Please try again in a moment.
+        </p>
       ) : error ? (
         <p className="text-destructive text-sm">That code is invalid or has expired.</p>
       ) : null}

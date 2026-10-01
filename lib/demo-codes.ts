@@ -5,7 +5,8 @@ import { DEMO_SESSION_DURATION_MS, hmacHex } from '@/lib/demo-gate';
 // parameter, randomness is injectable.
 
 const CODE_PREFIX = 'AMD';
-const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+// Crockford base32: no I, L, O or U, so a hand-typed code has no look-alike pairs.
+const BASE32_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const CODE_RANDOM_BYTES = 16; // 128 bits
 const DISPLAY_GROUP_SIZE = 4;
 
@@ -28,9 +29,16 @@ function base32Encode(bytes: Uint8Array): string {
   return encoded;
 }
 
-/** Strips everything but letters and digits and uppercases, so typing style never matters. */
+/**
+ * Strips everything but letters and digits, uppercases and folds the look-alikes the
+ * alphabet leaves out (O to 0, I and L to 1), so typing style and misreading never matter.
+ */
 export function normalizeDemoCode(raw: string): string {
-  return raw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return raw
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+    .replace(/O/g, '0')
+    .replace(/[IL]/g, '1');
 }
 
 /** `AMD-XXXX-XXXX-…` from a normalised code. */

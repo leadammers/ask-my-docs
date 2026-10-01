@@ -37,6 +37,13 @@ create index demo_entitlements_code_id_idx on demo_entitlements (code_id);
 -- different code moves the session: the upsert re-points the entitlement.
 -- Returns a status rather than raising, so a bad code leaks nothing through
 -- error text.
+--
+-- security invoker on purpose: service_role already holds exactly the grants it
+-- needs (select/update on demo_codes, DML on demo_entitlements) and bypasses
+-- RLS, so nothing here needs elevated rights. If a grant ever drifts, the call
+-- fails closed instead of running as the owner. This is not the self-service
+-- security-definer grant function that 20260929114828_demo_entitlement.sql rules
+-- out; only service_role can execute it at all.
 create function public.claim_demo_session(
   p_code_hash text,
   p_user_id uuid,
@@ -44,7 +51,7 @@ create function public.claim_demo_session(
 )
 returns text
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 declare

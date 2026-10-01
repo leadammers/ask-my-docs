@@ -43,7 +43,9 @@ export async function login(formData: FormData): Promise<void> {
     p_ttl_seconds: DEMO_SESSION_DURATION_MS / 1000,
   });
   if (claimError) {
-    redirect('/demo-login?error=1');
+    // An RPC failure is ours, not the visitor's: don't tell them the code is bad.
+    console.error(JSON.stringify({ level: 'error', event: 'demo_claim_failed' }));
+    redirect('/demo-login?error=unavailable');
   }
   if (outcome === 'seats_full') {
     redirect('/demo-login?error=seats');

@@ -3,7 +3,7 @@
 -- revoking or expiring a code ends access immediately. Codes here are fake
 -- hashes — the function never sees a plaintext code.
 begin;
-select plan(20);
+select plan(21);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -17,7 +17,7 @@ insert into demo_codes (id, label, code_hash, expires_at, revoked_at, max_sessio
   ('c0de0000-0000-0000-0000-000000000003', 'expired', 'hash-expired', now() - interval '1 second', null, 2),
   ('c0de0000-0000-0000-0000-000000000004', 'other',   'hash-other',   now() + interval '7 days', null,  1);
 
--- Claiming (as the table owner, which is what service_role's call amounts to)
+-- Claiming (the first calls run as the owner; test 21 runs as service_role itself)
 select is(public.claim_demo_session('hash-unknown', '11111111-1111-1111-1111-111111111111', 28800), 'invalid', '1 an unknown code is invalid');
 select is(public.claim_demo_session('hash-revoked', '11111111-1111-1111-1111-111111111111', 28800), 'invalid', '2 a revoked code is invalid');
 select is(public.claim_demo_session('hash-expired', '11111111-1111-1111-1111-111111111111', 28800), 'invalid', '3 an expired code is invalid');
@@ -90,6 +90,19 @@ select throws_ok(
   '42501',
   'permission denied for function claim_demo_session',
   '20 anon cannot claim a session'
+);
+
+reset role;
+
+-- The function is security invoker, so service_role's own grants must be enough.
+insert into demo_codes (id, label, code_hash, expires_at)
+values ('c0de0000-0000-0000-0000-000000000005', 'fresh', 'hash-fresh', now() + interval '7 days');
+
+set local role service_role;
+select is(
+  public.claim_demo_session('hash-fresh', '44444444-4444-4444-4444-444444444444', 28800),
+  'ok',
+  '21 service_role can claim with its own grants (security invoker)'
 );
 
 reset role;

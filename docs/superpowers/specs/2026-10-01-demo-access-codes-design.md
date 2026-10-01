@@ -79,7 +79,7 @@ Returning a status string, not raising, keeps the action's error mapping trivial
 
 ### Code format and secrets
 
-- Code: `AMD-` + 26 base32 characters (128 bits from `crypto.randomBytes`), grouped for readability on display, e.g. `AMD-7K2Q-…`. Normalisation makes grouping and case irrelevant when typing.
+- Code: `AMD-` + 26 Crockford base32 characters (128 bits from `crypto.getRandomValues`; the alphabet has no I, L, O or U), grouped for readability on display, e.g. `AMD-7K2Q-…`. Normalisation makes grouping and case irrelevant when typing and folds O to 0 and I/L to 1.
 - Stored only as `HMAC-SHA256(DEMO_CODE_PEPPER, normalisedCode)`. The plaintext exists once, in the CLI output at creation.
 - New env var `DEMO_CODE_PEPPER` (min 32 chars) in `lib/env.ts`, `.env.example`, the CI e2e job env (needed because `SKIP_ENV_VALIDATION=1` skips defaults) and Vercel (human step). `DEMO_PASSWORD` is removed everywhere. `DEMO_COOKIE_SECRET` stays.
 - Rotating the pepper invalidates every code; treat it like `DEMO_COOKIE_SECRET`.
