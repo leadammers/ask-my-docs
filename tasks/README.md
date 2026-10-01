@@ -58,7 +58,7 @@ Development runs against the **local** Supabase stack. Production is the hosted 
 2. `supabase db push` (hosted project, linked in T00)
 3. Merge `dev` into `main` through a reviewed PR → the `deploy-prod` job in CI deploys (the Vercel Git integration is off, D-23). Land any migration the new code depends on in step 2 first. Once it is live, remove `DEMO_PASSWORD` from Vercel
 4. If seed data changed (T08c, T09, T11): run `pnpm script scripts/seed-demo.ts` with production env values
-5. Smoke-test the code path (needs a production env file, see the header of `scripts/demo-codes.ts`; below `CLI` = `pnpm exec tsx --conditions=react-server --env-file=.env.production.local scripts/demo-codes.ts`):
+5. Smoke-test the code path (needs `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and the same `DEMO_CODE_PEPPER` as Vercel, from the Supabase dashboard and your own copy of the pepper, in a throwaway `.env.production.local`; below `CLI` = `pnpm exec tsx --env-file=.env.production.local scripts/demo-codes.ts`):
    1. `CLI create "smoke test" --days 1` — copy the printed code and the id
    2. Open `ask-my-docs-demo.vercel.app` in an incognito window and enter the code at `/demo-login`: you should land on the notebooks page. "Invalid or expired" means the CLI's `DEMO_CODE_PEPPER` differs from Vercel's: fix the env file and repeat
    3. `CLI revoke <id>`, then reload the incognito window: it should show no notebook data

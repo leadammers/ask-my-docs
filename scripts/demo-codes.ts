@@ -3,13 +3,12 @@
 //   pnpm script scripts/demo-codes.ts list
 //   pnpm script scripts/demo-codes.ts revoke <id>
 //
-// Against production this is a human-only step (D-11). The script loads lib/env.ts,
-// so the env file must be the FULL server env (not just three variables), with the
-// hosted NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and the SAME
-// DEMO_CODE_PEPPER as Vercel — a different pepper issues codes that never validate.
-// `vercel env pull .env.production.local --environment=production` produces it:
-//   pnpm exec tsx --conditions=react-server --env-file=.env.production.local \
-//     scripts/demo-codes.ts list
+// Against production this is a human-only step (D-11). The script reads only three
+// variables (not lib/env.ts), because Vercel will not hand out sensitive values:
+// NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY of the hosted project, and
+// the SAME DEMO_CODE_PEPPER as Vercel (a different one issues codes that never
+// validate). Put them in a throwaway file or the shell, never in the repo:
+//   pnpm exec tsx --env-file=.env.production.local scripts/demo-codes.ts list
 // `create` prints the code exactly once; only its hash is stored. Try every new
 // code on the live site before sending it (see tasks/README.md, release step 5).
 import { parseArgs } from 'node:util';
@@ -21,14 +20,32 @@ import {
   type DemoCodeRow,
   type DemoEntitlementRow,
 } from '@/lib/demo-codes';
-import { env } from '@/lib/env';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 
 const DEFAULT_CODE_LIFETIME_DAYS = 14;
 const DEFAULT_MAX_SESSIONS = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // PostgREST caps one response (1000 rows by default), so list reads in pages.
 const PAGE_SIZE = 1000;
+
+const cliEnvSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  DEMO_CODE_PEPPER: z.string().min(32),
+});
+
+// Service-role client built from the three variables above; same options as
+// lib/supabase/admin.ts, which needs the full server env and `server-only`.
+function createAdminClient() {
+  const env = cliEnvSchema.parse(process.env);
+  return {
+    pepper: env.DEMO_CODE_PEPPER,
+    client: createClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    }),
+  };
+}
 
 const createInputSchema = z.object({
   label: z.string().trim().min(1).max(100),
@@ -49,11 +66,12 @@ async function createCode(args: string[]): Promise<void> {
   });
 
   const code = generateDemoCode();
-  const { data, error } = await createAdminClient()
+  const { client, pepper } = createAdminClient();
+  const { data, error } = await client
     .from('demo_codes')
     .insert({
       label: input.label,
-      code_hash: await hashDemoCode(env.DEMO_CODE_PEPPER, code),
+      code_hash: await hashDemoCode(pepper, code),
       expires_at: new Date(Date.now() + input.days * MS_PER_DAY).toISOString(),
       max_sessions: input.sessions,
     })
@@ -82,7 +100,7 @@ async function readAllPages<Row>(
 }
 
 async function listCodes(): Promise<void> {
-  const client = createAdminClient();
+  const { client } = createAdminClient();
   const [codes, entitlements] = await Promise.all([
     readAllPages<DemoCodeRow>('Could not list codes', (from, to) =>
       client
@@ -116,7 +134,7 @@ async function listCodes(): Promise<void> {
 
 async function revokeCode(args: string[]): Promise<void> {
   const id = z.string().uuid().parse(args[0]);
-  const client = createAdminClient();
+  const { client } = createAdminClient();
 
   const { data: existing, error: readError } = await client
     .from('demo_codes')
@@ -150,5 +168,7 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);
+  // The operator is the only reader and the cause (a PostgREST error) holds no secrets.
+  if (error instanceof Error && error.cause) console.error('Cause:', error.cause);
   process.exit(1);
 });
