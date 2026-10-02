@@ -3,7 +3,7 @@
 -- `sources` row naming that path; nobody touches another user's folder; the
 -- `audio` bucket takes no client writes.
 begin;
-select plan(11);
+select plan(12);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -17,6 +17,17 @@ insert into sources (id, notebook_id, user_id, kind, title, storage_path) values
   ('a1000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
    '11111111-1111-1111-1111-111111111111', 'pdf', 'A source',
    '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001.pdf');
+
+-- A second tracked path whose object already exists (written as the table owner),
+-- so the unentitled-update case below has a row to hit: USING lets the owner see
+-- it, only WITH CHECK carries the entitlement.
+insert into sources (id, notebook_id, user_id, kind, title, storage_path) values
+  ('a1000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111', 'pdf', 'A second source',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002.pdf');
+
+insert into storage.objects (bucket_id, name) values
+  ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002.pdf');
 
 insert into demo_codes (id, label, code_hash, expires_at) values
   ('c0de0000-0000-0000-0000-000000000001', 'fixture', 'hash-fixture', now() + interval '7 days');
@@ -33,6 +44,15 @@ select throws_ok(
   '42501',
   null,
   'an unentitled session cannot upload, even to a path its own source row names'
+);
+
+select throws_ok(
+  $$ update storage.objects set metadata = '{}'::jsonb
+     where bucket_id = 'sources'
+       and name = '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000002.pdf' $$,
+  '42501',
+  null,
+  'an unentitled owner cannot update even an object it can see'
 );
 
 -- ---------------------------------------------------------------------------
