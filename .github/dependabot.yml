@@ -5,8 +5,8 @@ updates:
     target-branch: 'dev'
     schedule:
       interval: weekly
-    # Packages that must (react) or should (the rest) move together, so a bump
-    # never leaves one half of a pair on the old version.
+    # Group available updates for related packages. Dependabot does not force
+    # packages without an available update to change.
     groups:
       react:
         patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
