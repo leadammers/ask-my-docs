@@ -32,6 +32,7 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T08b](T08b-data-retention.md) | Data retention for inactive users + retention banner and footer notice | shared | P0 | T05 | 1.5h | 15 min | review |
 | [T08c](T08c-demo-notebook.md) | Demo notebook seeding (`seed-demo.ts`, seed documents) | shared | P0 | T05, T07 | 0.75h | 20 min | todo |
 | — | **MVP submittable** | | | | **~18.5h** | **~3.8h** | |
+| [T16](T16-i18n.md) | Internationalisation (English + German UI, localised errors) | agent+check | P2 | T08 | 3h | 20 min | todo |
 | [T09](T09-notebook-guide.md) | Notebook guide | hand-off | P1 | T08 | 1.25h | 5 min | todo |
 | [T10](T10-more-source-types.md) | Text, Markdown and URL sources | hand-off | P2 | T08 | 1.75h | 5 min | todo |
 | [T13](T13-evaluation.md) | Evaluation | shared | P0 | T08 | 1.5h | 45 min | todo |
@@ -41,13 +42,13 @@ Every task file has a **Your part** section unless it is `hand-off`.
 | [T15](T15-docs-and-video.md) | README, diagram, Loom video | shared | P0 | all | 1.5h | 1.5h | todo |
 | — | **Total** | | | | **~30h** | **~7.2h** | |
 
-**By mode:** human: T00 · hand-off: T01, T02, T04, T05, T06, T09, T10, T12 · agent+check: T07, T08, T14 · shared: T03, T08b, T08c, T11, T13, T15
+**By mode:** human: T00 · hand-off: T01, T02, T04, T05, T06, T09, T10, T12 · agent+check: T07, T08, T14, T16 · shared: T03, T08b, T08c, T11, T13, T15
 
 **Budget warning:** ~30h of agent-assisted work against a ~20h budget. The rework of T08 (2026-09-28) split the demo notebook out into T08c and re-estimated the workspace honestly — the two additions together are ~2.5h more than the old single row claimed, which is the estimate catching up with the scope, not scope being added. E2E tests added ~2.5h of *agent* time and saved some of yours. Watch the cut line closely.
 
-**Cut line** (from `docs/scope.md`): T13 (evaluation) and T14 (hardening) are part of the MVP and are never cut. If behind by day 4, drop T11 (audio overview) first, then T12 (saved notes), then the URL part of T10.
+**Cut line** (from `docs/scope.md`): T13 (evaluation) and T14 (hardening) are part of the MVP and are never cut. If behind by day 4, drop T11 (audio overview) first, then T12 (saved notes), then the URL part of T10. T16 (i18n) was added after the plan; it runs before T09 so later UI work writes strings into the message files instead of being retrofitted. Its ~3h is not in the totals, so it pushes the budget warning further — cut it only after T11 and T12.
 
-**Recommended order after the MVP:** T09 → T10 → T13 → T14 → T12 → T11 → T15. T13 and T14 come before the remaining extras — they are guaranteed, the extras are not.
+**Recommended order after the MVP:** T16 → T09 → T10 → T13 → T14 → T12 → T11 → T15. T13 and T14 come before the remaining extras — they are guaranteed, the extras are not.
 
 ## Release to production (human)
 

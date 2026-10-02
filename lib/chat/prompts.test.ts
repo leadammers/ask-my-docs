@@ -61,6 +61,10 @@ describe('buildSystemPrompt', () => {
     expect(promptFor(2)).toMatch(/numbering inside a block/i);
   });
 
+  it("answers in the question's language even when the context is in another", () => {
+    expect(promptFor(1)).toMatch(/language of the user's latest question, even when the context/i);
+  });
+
   it('labels every block with its number and full content', () => {
     expect(promptFor(2)).toContain('[1] (Source: "report.pdf", p. 1)\ncontent 1');
     expect(promptFor(2)).toContain('[2] (Source: "report.pdf", p. 2)\ncontent 2');
