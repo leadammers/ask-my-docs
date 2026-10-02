@@ -64,7 +64,7 @@ The app refuses to start until these `.env.local` variables are set (`lib/env.ts
 
 `DEMO_CODE_PEPPER` only hashes codes: it is not a login. Re-run the `create` line after every `pnpm db:reset`, which clears the codes.
 
-Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:test` (pgTAP), `pnpm test:e2e` (Playwright; see [AGENTS.md](AGENTS.md) for the env it needs).
+Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm build`, `pnpm db:test` (pgTAP), `pnpm test:e2e` (Playwright; see [AGENTS.md](AGENTS.md) for the env it needs).
 
 ---
 
