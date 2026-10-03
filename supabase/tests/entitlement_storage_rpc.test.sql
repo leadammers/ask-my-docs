@@ -1,11 +1,12 @@
--- Pentest follow-up: the entitlement gate also covers the paths that
--- demo_entitlement.test.sql does not exercise — match_chunks over the demo
--- notebook and Storage uploads. A session with no live entitlement must not
--- read demo chunks or write to the sources bucket, even into its own folder
--- with a matching `sources` row; an entitled session (the control) must be able
--- to, so a passing negative case cannot be a fixture that denies everyone.
+-- Pentest follow-up: the entitlement gate also covers match_chunks over the demo
+-- notebook, which demo_entitlement.test.sql does not exercise. A session with no
+-- live entitlement must not read demo chunks; an entitled session (the control)
+-- must, so a passing negative case cannot be a fixture that denies everyone.
+-- The same two checks guard the owner-folder rule of the sources bucket. What the
+-- bucket demands beyond that folder (entitlement, a matching sources row) is
+-- asserted where that policy is defined, in storage_rls.test.sql.
 begin;
-select plan(7);
+select plan(4);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -52,19 +53,8 @@ select is(
   'unentitled A gets no demo chunks from match_chunks'
 );
 
--- Storage: A owns a pending source with the exact expected path, but holds no
--- entitlement, so the upload is refused.
-select throws_ok(
-  $$ insert into storage.objects (bucket_id, name, owner_id)
-     values ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001.pdf',
-             '11111111-1111-1111-1111-111111111111') $$,
-  '42501',
-  'new row violates row-level security policy for table "objects"',
-  'unentitled A cannot upload to their own source path'
-);
-
 -- ---------------------------------------------------------------------------
--- B, entitled: the control, plus the other conditions of the insert policy
+-- B, entitled: the control, plus the owner-folder rule
 -- ---------------------------------------------------------------------------
 set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
 
@@ -91,24 +81,6 @@ select throws_ok(
   '42501',
   'new row violates row-level security policy for table "objects"',
   'entitled B cannot upload into another user''s folder'
-);
-
-select throws_ok(
-  $$ insert into storage.objects (bucket_id, name, owner_id)
-     values ('sources', '22222222-2222-2222-2222-222222222222/no-such-source.pdf',
-             '22222222-2222-2222-2222-222222222222') $$,
-  '42501',
-  'new row violates row-level security policy for table "objects"',
-  'entitled B cannot upload a path with no matching sources row'
-);
-
-select throws_ok(
-  $$ insert into storage.objects (bucket_id, name, owner_id)
-     values ('sources', '22222222-2222-2222-2222-222222222222/b1000000-0000-0000-0000-000000000001.html',
-             '22222222-2222-2222-2222-222222222222') $$,
-  '42501',
-  'new row violates row-level security policy for table "objects"',
-  'entitled B cannot upload a non-.pdf name for their source'
 );
 
 select * from finish();
