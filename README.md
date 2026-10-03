@@ -42,19 +42,29 @@ The demo sits behind a per-reviewer access code so that a public URL cannot burn
 
 ### 🚀 Run locally
 
-Needs Node 22, pnpm (`corepack enable`), Docker and the Supabase CLI. Development runs against a **local** Supabase stack; the hosted project is only touched by the release steps in [tasks/README.md](tasks/README.md).
+Needs Node 22.22.1+, pnpm (`corepack enable`), Docker and the Supabase CLI. Development runs against a **local** Supabase stack; the hosted project is only touched by the release steps in [tasks/README.md](tasks/README.md).
 
 ```bash
 pnpm install
-cp .env.example .env.local   # fill in the Gemini key, or set AI_PROVIDER=mock
 pnpm db:start                # local Supabase in Docker
+cp .env.example .env.local   # then fill in the variables below
 pnpm script scripts/demo-codes.ts create "Local development"   # prints your access code once
 pnpm dev                     # http://localhost:3000, enter the printed code at /demo-login
 ```
 
-`DEMO_CODE_PEPPER` in `.env.local` only hashes codes: it is not a login. Re-run the `create` line after every `pnpm db:reset`, which clears the codes.
+The app refuses to start until these `.env.local` variables are set (`lib/env.ts` validates them):
 
-Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:test` (pgTAP), `pnpm test:e2e` (Playwright; see [AGENTS.md](AGENTS.md) for the env it needs).
+| Variable | Value |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `API_URL` from `pnpm exec supabase status -o env` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `ANON_KEY` from the same output |
+| `SUPABASE_SERVICE_ROLE_KEY` | `SERVICE_ROLE_KEY` from the same output |
+| `DEMO_CODE_PEPPER`, `DEMO_COOKIE_SECRET` | two different secrets from `openssl rand -hex 32` (at least 32 characters each) |
+| `GOOGLE_GENERATIVE_AI_API_KEY`, `AI_CHAT_MODEL` | your Gemini key and a current Gemini Flash model ID; or set `AI_PROVIDER=mock` and give `AI_CHAT_MODEL` any value |
+
+`DEMO_CODE_PEPPER` only hashes codes: it is not a login. Re-run the `create` line after every `pnpm db:reset`, which clears the codes.
+
+Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm build`, `pnpm db:test` (pgTAP), `pnpm test:e2e` (Playwright; see [AGENTS.md](AGENTS.md) for the env it needs).
 
 ---
 
