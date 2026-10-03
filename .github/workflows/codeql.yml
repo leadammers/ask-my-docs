@@ -1,0 +1,40 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  # Job id is the status-check context the ruleset matches on, like `semgrep`.
+  codeql:
+    # A dev -> main PR re-analyzes the code the push to dev already scanned; skip
+    # the duplicate. A skipped job still satisfies a required check, so the skip is
+    # bound to this repository's own dev branch: a fork can name its branch `dev`.
+    if: >-
+      !(github.event_name == 'pull_request'
+      && github.head_ref == 'dev'
+      && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # JavaScript/TypeScript needs no build for extraction, so `build-mode: none`
+      # replaces autobuild: nothing to install or compile, and no pnpm setup to drift.
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: /language:javascript-typescript
