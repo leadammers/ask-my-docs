@@ -3,7 +3,7 @@
 -- `sources` row naming that path; nobody touches another user's folder; the
 -- `audio` bucket takes no client writes.
 begin;
-select plan(12);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -127,6 +127,16 @@ select throws_ok(
   '42501',
   null,
   'a repointed storage_path does not make another object name uploadable'
+);
+
+select throws_ok(
+  $$ update sources
+     set id = 'a1000000-0000-0000-0000-000000000009',
+         storage_path = '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000009.pdf'
+     where id = 'a1000000-0000-0000-0000-000000000001' $$,
+  '42501',
+  'sources.id is immutable',
+  'an owner cannot change sources.id together with storage_path'
 );
 
 -- ---------------------------------------------------------------------------
