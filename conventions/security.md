@@ -114,6 +114,7 @@ Fetching user-supplied URLs from our server is a classic SSRF vector.
 - Lockfile committed; CI installs with `--frozen-lockfile`
 - **Dependabot** for npm and GitHub Actions; `pnpm audit --audit-level=high` in CI
 - Keep Next.js on the latest patch release — framework-level vulnerabilities do happen
+- An advisory that cannot be fixed is ignored **by GHSA ID** in `pnpm-workspace.yaml` (`auditConfig.ignoreGhsas`), never with `--ignore-unfixable` or a non-blocking audit. Each entry names why it is safe here and what ends the exception. Current: braces `GHSA-vfj7-8cjw-p6xm` (dev-only, no patched release, advisory disputed)
 - New dependencies need a reason and approval (see `principles.md`, "Use the platform")
 
 ## 12. Errors, logging and privacy
