@@ -514,6 +514,7 @@ export type Database = {
           vector_score: number
         }[]
       }
+      own_source_object_count: { Args: never; Returns: number }
       record_ai_usage_if_allowed: {
         Args: {
           p_daily_cap: number

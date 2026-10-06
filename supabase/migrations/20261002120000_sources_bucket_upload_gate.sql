@@ -10,7 +10,8 @@
 -- An object may be written only when the caller is demo-entitled AND owns a
 -- `sources` row naming that exact path. createSourceUpload inserts the row
 -- (count and trigger limits apply) before it asks for the signed upload URL,
--- so the app's own flow is unchanged and the source limit bounds storage too.
+-- so the app's own flow is unchanged. The source limit alone does not bound
+-- storage: deleting a row orphans its object, see 20261004120000 for the cap.
 -- The name is tied to the row's immutable id (lib/sources.ts sourceStoragePath),
 -- not just to its `storage_path`: `authenticated` may update that column, and
 -- repointing one row at ever new paths would otherwise buy unlimited objects for
