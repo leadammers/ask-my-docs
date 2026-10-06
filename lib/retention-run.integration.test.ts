@@ -8,6 +8,7 @@ import {
   runRetention,
   type RetentionResult,
 } from '@/lib/retention-run';
+import { sourceStoragePath } from '@/lib/sources';
 import type { Database } from '@/lib/supabase/types';
 
 // Runs against the local Supabase stack (see vitest.integration.config.ts).
@@ -57,14 +58,28 @@ async function addDataFor(user: TestUser): Promise<void> {
     expires_at: new Date(Date.now() + DEMO_SESSION_DURATION_MS).toISOString(),
   });
   if (entitlementError) throw entitlementError;
-  const { error: notebookError } = await user.client.from('notebooks').insert({ title: 'Mine' });
+  const { data: notebook, error: notebookError } = await user.client
+    .from('notebooks')
+    .insert({ title: 'Mine' })
+    .select('id')
+    .single();
   if (notebookError) throw notebookError;
+  // The sources bucket only takes objects a sources row names (trigger in
+  // 20261004120000, which binds the storage superuser too).
+  const sourceId = crypto.randomUUID();
+  const sourcePath = sourceStoragePath(user.id, sourceId);
+  const { error: sourceError } = await user.client.from('sources').insert({
+    id: sourceId,
+    notebook_id: notebook.id,
+    kind: 'pdf',
+    title: 'Source',
+    storage_path: sourcePath,
+  });
+  if (sourceError) throw sourceError;
   const pdf = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });
   const wav = new Blob(['RIFF test'], { type: 'audio/wav' });
   const uploads = await Promise.all([
-    admin.storage
-      .from('sources')
-      .upload(`${user.id}/source.pdf`, pdf, { contentType: 'application/pdf' }),
+    admin.storage.from('sources').upload(sourcePath, pdf, { contentType: 'application/pdf' }),
     admin.storage
       .from('audio')
       .upload(`${user.id}/overview.wav`, wav, { contentType: 'audio/wav' }),
