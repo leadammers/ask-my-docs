@@ -1,3 +1,16 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# Forces the patched source-map-js (GHSA-68fv-2mgg-jv7q) under next -> postcss and
+# the Tailwind/jsdom paths. Drop once every parent resolves >=1.2.2 on its own.
+overrides:
+  source-map-js: '>=1.2.2'
+
+# Accepted advisories, each with its reason and revisit trigger (security.md §11).
+auditConfig:
+  ignoreGhsas:
+    # braces <=3.0.3: no patched release, dev-only (eslint-config-next, shadcn CLI),
+    # only ever sees our own glob patterns; the advisory itself is disputed
+    # (github/advisory-database#10132). Revisit on a braces release or that PR's outcome.
+    - GHSA-vfj7-8cjw-p6xm

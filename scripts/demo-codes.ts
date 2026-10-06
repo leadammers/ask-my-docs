@@ -1,4 +1,4 @@
-// Issue, list and revoke per-reviewer demo access codes (D-24).
+// Issue, list and revoke per-person demo access codes (D-24).
 //   pnpm script scripts/demo-codes.ts create "<label>" [--days N] [--sessions N]
 //   pnpm script scripts/demo-codes.ts list
 //   pnpm script scripts/demo-codes.ts revoke <id>

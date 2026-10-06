@@ -1,17 +1,17 @@
-# Per-reviewer demo access codes
+# Per-person demo access codes
 
 Status: draft for review · Date: 2026-10-01 · Supersedes the shared password of D-16 (proposed as D-24)
 
 ## Problem
 
-The demo gate is one shared password (`DEMO_PASSWORD`, D-16). Once it is sent to a reviewer it is effectively public: it can be forwarded, it cannot be withdrawn from one person, and rotating it locks out everyone. D-21 already enforces the gate in Postgres (`demo_entitlements`, `is_demo_entitled()`), so the fix is to change what _earns_ an entitlement, not to rebuild the gate.
+The demo gate is one shared password (`DEMO_PASSWORD`, D-16). Once it is sent to a demo user it is effectively public: it can be forwarded, it cannot be withdrawn from one person, and rotating it locks out everyone. D-21 already enforces the gate in Postgres (`demo_entitlements`, `is_demo_entitled()`), so the fix is to change what _earns_ an entitlement, not to rebuild the gate.
 
 ## Goals
 
-- Issue one code per reviewer; revoke a single reviewer without affecting anyone else.
+- Issue one code per demo user; revoke a single demo user without affecting anyone else.
 - Revocation takes effect immediately at the database level, not only at the next login.
 - Limit sharing: a code works on at most 3 concurrent sessions (devices/browsers).
-- Codes expire on their own at the end of the review window.
+- Codes expire on their own at the end of the demo period.
 - Manage codes with a CLI script run by the human (no admin UI).
 
 ## Non-goals
@@ -19,7 +19,7 @@ The demo gate is one shared password (`DEMO_PASSWORD`, D-16). Once it is sent to
 - No admin web UI, no email delivery of codes, no self-service signup.
 - No per-IP or fingerprint limits (see `conventions/security.md` §7, residual risk unchanged).
 - No `DEMO_PASSWORD` fallback: the password is removed, not kept alongside codes.
-- Revocation does not delete a reviewer's notebooks; retention (30 days) still applies.
+- Revocation does not delete a demo user's notebooks; retention (30 days) still applies.
 
 ## Design
 
@@ -33,7 +33,7 @@ New table `demo_codes`:
 | `label`        | text not null       | Who it was issued to; 1–100 chars             |
 | `code_hash`    | text not null unique | HMAC-SHA256 hex of the normalised code       |
 | `created_at`   | timestamptz         | default `now()`                               |
-| `expires_at`   | timestamptz not null | CLI default: end of the review window        |
+| `expires_at`   | timestamptz not null | CLI default: end of the demo period           |
 | `revoked_at`   | timestamptz         | null = active                                 |
 | `max_sessions` | int not null        | default 3, check `between 1 and 10`           |
 
@@ -55,7 +55,7 @@ select exists (
 );
 ```
 
-The nine policies that call it are unchanged. Revoking a code therefore closes every existing session of that reviewer on the next request, including direct PostgREST calls.
+The nine policies that call it are unchanged. Revoking a code therefore closes every existing session of that demo user on the next request, including direct PostgREST calls.
 
 ### Claiming a session
 
@@ -74,7 +74,7 @@ Returning a status string, not raising, keeps the action's error mapping trivial
 - The field becomes `code` (Zod: trimmed string, 8–64 chars). `lib/demo-codes.ts` normalises (trim, uppercase, strip spaces and hyphens) and hashes it with `DEMO_CODE_PEPPER`.
 - The grant becomes `rpc('claim_demo_session', …)` via the service-role client (user input selects no row by itself: it is hashed and matched against a unique column, and the user id comes from the server-resolved session).
 - Outcomes: `ok` → cookie + redirect. `invalid` → `/demo-login?error=1` ("That code is invalid or has expired" — one message for unknown, revoked and expired, so a guess learns nothing). `seats_full` → `/demo-login?error=seats` ("This code is already in use on its maximum number of devices", worded without a number because the limit is per code).
-- The cookie is unchanged (HMAC, 8 h, route gate only, no `code_id` in it). A revoked reviewer still passes `proxy.ts` but sees an empty app, exactly the D-21 trade-off; the cookie is not an authorization layer.
+- The cookie is unchanged (HMAC, 8 h, route gate only, no `code_id` in it). A revoked demo user still passes `proxy.ts` but sees an empty app, exactly the D-21 trade-off; the cookie is not an authorization layer.
 - The in-process login limiter stays as the stopgap it is. With 128-bit codes the guessing risk it covered (security.md §7) is gone, so that paragraph is rewritten rather than the limiter hardened.
 
 ### Code format and secrets
@@ -96,7 +96,7 @@ Returning a status string, not raising, keeps the action's error mapping trivial
 ### Rollout
 
 - The migration deletes all existing `demo_entitlements` rows (they have no code), so everyone re-enters a code; it ships in the same release as the code change (as D-21 did).
-- Hosted migration and Vercel env changes are human steps; after the deploy the human runs `create` for each reviewer and sends the code.
+- Hosted migration and Vercel env changes are human steps; after the deploy the human runs `create` for each demo user and sends the code.
 - README: "request a password" becomes "request an access code"; the drafted mailto body changes accordingly.
 
 ## Testing
@@ -114,7 +114,7 @@ Returning a status string, not raising, keeps the action's error mapping trivial
 
 ## Risks and accepted trade-offs
 
-- A reviewer can still share a code with up to two other devices; the cap bounds it, revocation ends it.
-- Seat counting uses live entitlements (8 h TTL), so a closed browser frees its seat only when its entitlement expires, or when the reviewer asks for a new code. Accepted; no explicit logout.
-- A revoked reviewer's cookie still passes the route gate until it expires (8 h); the database returns nothing for them. Same as D-21.
+- A demo user can still share a code with up to two other devices; the cap bounds it, revocation ends it.
+- Seat counting uses live entitlements (8 h TTL), so a closed browser frees its seat only when its entitlement expires, or when the demo user asks for a new code. Accepted; no explicit logout.
+- A revoked demo user's cookie still passes the route gate until it expires (8 h); the database returns nothing for them. Same as D-21.
 - Losing `DEMO_CODE_PEPPER` or rotating it invalidates all codes; the human re-issues them.

@@ -23,7 +23,7 @@ A local Supabase stack runs in Docker with the complete data model from `docs/ar
 - **RLS on all tables** (`conventions/database.md`):
   - Owner policies for select/insert/update/delete
   - **Insert/update `with check` also verifies the parent:** a row may only reference a notebook the user owns — `exists (select 1 from notebooks n where n.id = notebook_id and n.user_id = (select auth.uid()))`. Exception: `messages` may also reference the demo notebook (people chat with it).
-  - Demo read policies (notebooks, sources, chunks, notebook_guides, audio_overviews) require **both** `is_demo` on the notebook **and** `user_id = demo_owner_id` on the row. Without the second condition, anyone could insert a chunk into the demo notebook and every visitor would read it — a prompt-injection path into every reviewer's session.
+  - Demo read policies (notebooks, sources, chunks, notebook_guides, audio_overviews) require **both** `is_demo` on the notebook **and** `user_id = demo_owner_id` on the row. Without the second condition, anyone could insert a chunk into the demo notebook and every visitor would read it — a prompt-injection path into every demo user's session.
 - Storage via migration: private buckets `sources` and `audio`; users read/write only under `{auth.uid()}/…`; objects under `demo/…` readable by all authenticated users, writable by none
 - **RLS tests** as pgTAP in `supabase/tests/rls.test.sql`: two users; A cannot read, update or delete B's notebook, sources or chunks; A cannot insert a source or chunk into B's notebook; nobody can insert chunks into the demo notebook; demo rows are readable; a chunk in the demo notebook owned by someone other than the demo owner is **not** readable
 

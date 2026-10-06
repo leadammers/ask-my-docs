@@ -16,8 +16,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # A dev -> main PR re-runs the SHA the push to dev already tested; skip the duplicate.
-    if: github.head_ref != 'dev'
+    # A dev -> main PR re-runs the SHA the push to dev already tested; skip the duplicate. The skip is
+    # bound to this repository's own dev: a fork can name its branch `dev`, and a
+    # skipped job still satisfies a required check.
+    if: >-
+      !(github.event_name == 'pull_request'
+      && github.head_ref == 'dev'
+      && github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -45,7 +50,10 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    if: github.head_ref != 'dev'
+    if: >-
+      !(github.event_name == 'pull_request'
+      && github.head_ref == 'dev'
+      && github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -66,7 +74,10 @@ jobs:
   # auth and storage schemas and our migrations applied — all these tests need.
   db-test:
     runs-on: ubuntu-latest
-    if: github.head_ref != 'dev'
+    if: >-
+      !(github.event_name == 'pull_request'
+      && github.head_ref == 'dev'
+      && github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -178,7 +189,10 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
-    if: github.head_ref != 'dev'
+    if: >-
+      !(github.event_name == 'pull_request'
+      && github.head_ref == 'dev'
+      && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       contents: read
     steps:

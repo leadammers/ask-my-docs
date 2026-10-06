@@ -12,7 +12,7 @@ type GateState = 'checking' | 'signing-in' | 'done';
 /**
  * Silently signs in first-time visitors anonymously. Renders nothing visible
  * on success; conventions/security.md §2 requires Turnstile in managed mode
- * so reviewers see no challenge. Skips the widget entirely when
+ * so demo users see no challenge. Skips the widget entirely when
  * NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset (local dev, CAPTCHA off).
  */
 export function AuthGate() {

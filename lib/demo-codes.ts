@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DEMO_SESSION_DURATION_MS, hmacHex } from '@/lib/demo-gate';
 
-// Per-reviewer demo access codes (D-24). Pure: no env, no I/O — the pepper is a
+// Per-person demo access codes (D-24). Pure: no env, no I/O — the pepper is a
 // parameter, randomness is injectable.
 
 const CODE_PREFIX = 'AMD';

@@ -9,7 +9,7 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Date:** 2026-09-22 · **Status:** accepted
 
 **Decision:** Ship sources → grounded chat with citations as a complete, deployed product before any extra. Extras in order: notebook guide, more source types, audio overview, saved notes.
-**Why:** One week. Reviewers will test the core live; a polished core beats four half-built features.
+**Why:** A tight time budget. Users test the core first; a polished core beats four half-built features.
 **Rejected:** building features in parallel; starting with the audio overview because it is the most impressive.
 **Consequence:** A cut line exists (see `scope.md` §3) and is respected.
 
@@ -17,7 +17,7 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Date:** 2026-09-22 · **Status:** accepted
 
 **Decision:** Next.js App Router in TypeScript for UI and server logic, deployed to Vercel.
-**Why:** The live demo must respond on the first click. Free Python hosting (Render) sleeps after 15 min idle and takes ~1 min to wake — a reviewer's first impression would be a hanging request. One deploy target also removes a whole class of integration work from a one-week build.
+**Why:** The live demo must respond on the first click. Free Python hosting (Render) sleeps after 15 min idle and takes ~1 min to wake — a visitor's first impression would be a hanging request. One deploy target also removes a whole class of integration work from a small build.
 **Rejected:** Next.js + FastAPI (the original portfolio plan) — cold starts, two deployments, ~3-4 extra hours. Python only — same cold starts, weaker UI.
 **Consequence:** Long-running work (ingest, audio) must fit Vercel function limits → `maxDuration = 300`, size caps, direct-to-storage uploads.
 
@@ -34,14 +34,14 @@ New decisions are appended; superseded ones are marked, not deleted.
 
 **Decision:** Gemini API free tier for chat, embeddings and TTS, accessed through the Vercel AI SDK. Provider and model IDs come from env vars; Ollama works for local development.
 **Why:** €0 budget. One provider covers all three capabilities, including two-speaker TTS for the audio overview. Model IDs change often — keeping them in config avoids code changes.
-**Rejected:** local Ollama for the deployment — reviewers can't reach it. Paid APIs — budget.
+**Rejected:** local Ollama for the deployment — demo users can't reach it. Paid APIs — budget.
 **Consequence:** Free-tier content may be used by Google to improve its products → privacy notice in UI and README. Rate limits → retries with backoff, per-user limits, graceful error messages.
 
 ## D-05 — Anonymous sessions instead of accounts
 **Date:** 2026-09-22 · **Status:** accepted
 
 **Decision:** Supabase anonymous sign-in on first visit. Data persists per browser.
-**Why:** Reviewers should not hit a sign-up wall. RLS still gives each visitor an isolated workspace.
+**Why:** Demo users should not hit a sign-up wall. RLS still gives each visitor an isolated workspace.
 **Rejected:** email/OAuth (friction); no auth at all (no isolation, no rate limiting per user).
 **Consequence:** Clearing cookies loses notebooks — acceptable for a demo, stated in README.
 
@@ -72,9 +72,9 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Date:** 2026-09-22 · **Status:** accepted
 
 **Decision:** Cloudflare Turnstile on anonymous sign-in (managed/invisible mode, via Supabase Auth's CAPTCHA support), per-user rate limits, and a global daily cap on model calls.
-**Why:** The URL is public and users are anonymous, so per-user limits alone are bypassed by clearing cookies. The free Gemini quota is shared by everyone — one abuser could take the demo down during the review window.
-**Rejected:** per-user limits only (bypassable); real accounts (sign-up wall for reviewers).
-**Consequence:** One more external service (Turnstile, free) and one more human setup step in T00. CSP must allow Turnstile. Managed mode keeps reviewer friction near zero.
+**Why:** The URL is public and users are anonymous, so per-user limits alone are bypassed by clearing cookies. The free Gemini quota is shared by everyone — one abuser could take the demo down for everyone.
+**Rejected:** per-user limits only (bypassable); real accounts (sign-up wall for demo users).
+**Consequence:** One more external service (Turnstile, free) and one more human setup step in T00. CSP must allow Turnstile. Managed mode keeps user friction near zero.
 
 ## D-10 — Conventions as a directory, core rules always loaded
 **Date:** 2026-09-22 · **Status:** accepted
@@ -101,7 +101,7 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Date:** 2026-09-22 · **Status:** accepted (supersedes the "rejected" line in D-12)
 
 **Decision:** Every UI task adds Playwright tests (plus axe accessibility checks) for its predictable behaviour. They run against the local stack with `AI_PROVIDER=mock`, locally and in CI. Humans keep the judgement calls: real answer quality, voices, demo content, production.
-**Why:** The local stack removed the CAPTCHA obstacle. Automated tests turn six manual click-throughs into hand-offs, catch regressions while agents keep changing code, and are part of the engineering story for reviewers.
+**Why:** The local stack removed the CAPTCHA obstacle. Automated tests turn six manual click-throughs into hand-offs, catch regressions while agents keep changing code, and document how the project is engineered.
 **Rejected:** Cypress — Playwright is the Next.js-documented option, supports multiple browsers and free parallelism, and handles iframes (Turnstile) better. A single smoke suite — too little coverage to hand tasks off.
 **Consequence:** ~2.5h more agent time (total ~25h vs ~20h budget) → the cut line matters more. A mock provider must exist and must never be active in production.
 
@@ -116,17 +116,17 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Date:** 2026-09-25 · **Status:** proposed
 
 **Decision:** Evaluation (T13) and hardening (T14) are now explicit, never-cut parts of the MVP rather than tasks scheduled after all extras. Saved notes moves ahead of the audio overview in priority (P3), and the audio overview moves from P3 to a stretch goal, attempted only once P0, evaluation and hardening are done.
-**Why:** With a one-week budget, the core RAG pipeline (hybrid retrieval, grounded citations) is the main engineering deliverable, and a real evaluation plus security hardening are what make that deliverable credible. The audio overview is the most memorable demo moment but also the highest-risk build (preview TTS model, long generation) — building it before evaluation/hardening risked losing time on the riskiest feature and leaving the two most important quality checks exposed to the cut line.
+**Why:** With a tight time budget, the core RAG pipeline (hybrid retrieval, grounded citations) is the main engineering deliverable, and a real evaluation plus security hardening are what make that deliverable credible. The audio overview is the most memorable demo moment but also the highest-risk build (preview TTS model, long generation) — building it before evaluation/hardening risked losing time on the riskiest feature and leaving the two most important quality checks exposed to the cut line.
 **Rejected:** keeping the original order (audio overview at P3, evaluation/hardening scheduled after all extras) — too much schedule risk on the least certain part of the plan.
 **Consequence:** `docs/scope.md` §3 and §6, and `tasks/README.md`'s board, cut line and recommended order, updated to match.
 
 ## D-16 — Shared demo password in front of anonymous auth
 **Date:** 2026-09-26 · **Status:** proposed
 
-**Decision:** A `/demo-login` route checks a single shared password (env var) and, on success, sets a short-lived (8h), signed, httpOnly cookie via HMAC-SHA256. `proxy.ts` requires this cookie on every route except `/demo-login` and static assets, redirecting elsewhere otherwise. This sits in front of, not instead of, D-05's anonymous Supabase auth — the password gate keeps the deployed app off the open internet during the review window; anonymous auth + RLS still isolate visitors from each other underneath.
-**Why:** The public URL plus a free, shareable LLM quota is an easy target for scraping/abuse once discovered, beyond what D-09's CAPTCHA + rate limits + global cap alone bound. A password known only to reviewers removes that exposure without adding accounts or friction for the people who are supposed to use it.
+**Decision:** A `/demo-login` route checks a single shared password (env var) and, on success, sets a short-lived (8h), signed, httpOnly cookie via HMAC-SHA256. `proxy.ts` requires this cookie on every route except `/demo-login` and static assets, redirecting elsewhere otherwise. This sits in front of, not instead of, D-05's anonymous Supabase auth — the password gate keeps the deployed app off the open internet while the demo is live; anonymous auth + RLS still isolate visitors from each other underneath.
+**Why:** The public URL plus a free, shareable LLM quota is an easy target for scraping/abuse once discovered, beyond what D-09's CAPTCHA + rate limits + global cap alone bound. A password known only to demo users removes that exposure without adding accounts or friction for the people who are supposed to use it.
 **Rejected:** relying solely on D-09's layered abuse protection (CAPTCHA + per-user limits + global cap) — those bound cost but don't prevent a stranger from reaching and using the app at all; Vercel/host-level access control — not available on the free tier used here.
-**Consequence:** One new task (T02b) ahead of T03; two new env vars (`DEMO_PASSWORD`, `DEMO_COOKIE_SECRET`); the README (T15) must state that reviewers need the password, shared out of band.
+**Consequence:** One new task (T02b) ahead of T03; two new env vars (`DEMO_PASSWORD`, `DEMO_COOKIE_SECRET`); the README (T15) must state that demo users need the password, shared out of band.
 
 ## D-17 — Notebook limit enforced by a database trigger
 **Date:** 2026-09-27 · **Status:** proposed
@@ -185,10 +185,18 @@ New decisions are appended; superseded ones are marked, not deleted.
 **Rejected:** Running `vercel remove <project> --yes --safe` on a schedule, without a ref filter. It reads well and would keep the list small, but it cannot tell an abandoned branch from a pull request under review, so an open PR's preview disappears while its author is still looking at it. Making the cleanup a job inside `ci.yml`: that workflow's `pull_request` trigger carries no `types:`, so adding `closed` would re-run build, test, db-test and e2e on every merge to delete one deployment. A TypeScript script under `scripts/` with the selection extracted into a unit-tested pure function — the usual shape here (`conventions/principles.md`, "pure core, thin I/O shell"). The knowledge being tested would be one jq predicate and one CLI flag; the script would have to re-implement the API call the CLI already makes, so the test would cover the shell, not the logic. Keeping the Git integration and sweeping up after it: two producers, one of which creates deployments no PR can be attributed to.
 **Consequence:** The literal rule "keep anything built from `dev` or `main`" holds for the *current* deployments of those branches, not for their history: a superseded dev or main build holds no alias, so the sweep deletes it. The one-off cleanup and the automated sweep therefore have exactly the same semantics, which is deliberate — one rule, not two. A PR closed without merging leaves its preview behind, since no merge means no run; `workflow_dispatch` with its branch name is the manual path, and the same applies to a branch deleted by hand. Fork PRs get no preview at all, which was already true and now means that source is simply gone. `vercel remove` exits 1 when every matched deployment is filtered out as aliased — a merge whose only preview is aliased therefore shows a red job with an explanatory message rather than a green no-op. And the workflow's one unverified assumption is the meta key `githubCommitRef`: if it is not the key Vercel records for a CLI deployment, the job deletes nothing and reports that, printing the newest five deployments and their actual refs.
 
-## D-24 — Per-reviewer demo access codes replace the shared password
+## D-24 — Per-person demo access codes replace the shared password
 **Date:** 2026-10-01 · **Status:** proposed (supersedes the shared password of D-16; builds on D-21)
 
-**Decision:** The demo password is replaced by one access code per reviewer (`AMD-` + 128 random bits, shown once, stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`). `claim_demo_session(code_hash, user_id, ttl_seconds)` (service-role only) locks the code row, refuses unknown, revoked or expired codes and a session beyond `max_sessions` (default 3), and writes the `demo_entitlements` row with its `code_id`. `is_demo_entitled()` also requires the code to be unrevoked and unexpired, so revoking a code ends access at the database immediately. The cookie is unchanged (route gate only). Codes are issued, listed and revoked with `scripts/demo-codes.ts` by the human. `DEMO_PASSWORD` is removed with no fallback.
+**Decision:** The demo password is replaced by one access code per demo user (`AMD-` + 128 random bits, shown once, stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`). `claim_demo_session(code_hash, user_id, ttl_seconds)` (service-role only) locks the code row, refuses unknown, revoked or expired codes and a session beyond `max_sessions` (default 3), and writes the `demo_entitlements` row with its `code_id`. `is_demo_entitled()` also requires the code to be unrevoked and unexpired, so revoking a code ends access at the database immediately. The cookie is unchanged (route gate only). Codes are issued, listed and revoked with `scripts/demo-codes.ts` by the human. `DEMO_PASSWORD` is removed with no fallback.
 **Why:** A shared password is effectively public once sent, cannot be withdrawn from one person, and rotating it locks everyone out. Per-person codes make a leak attributable and revocable, and the seat cap bounds sharing.
-**Rejected:** keeping the password beside codes (a permanent bypass); an admin web UI (a new privileged surface for a handful of reviewers); single-use OTPs (reviewers return over several days); putting `code_id` in the cookie (the cookie is not an authorization layer, D-21).
+**Rejected:** keeping the password beside codes (a permanent bypass); an admin web UI (a new privileged surface for a handful of demo users); single-use OTPs (demo users return over several days); putting `code_id` in the cookie (the cookie is not an authorization layer, D-21).
 **Consequence:** One migration that clears existing entitlements, one new secret (`DEMO_CODE_PEPPER`; rotating it invalidates every code), and a seat frees only when its 8 h entitlement expires. The in-process login limiter stays a stopgap, but guessing 128-bit codes is infeasible.
+
+## D-25 — CodeQL gates merges; a ZAP baseline scan is considered and not added
+**Date:** 2026-10-03 · **Status:** proposed (builds on D-21 and D-24)
+
+**Decision:** **CodeQL** joins CI as its own workflow (`.github/workflows/codeql.yml`, advanced setup, `javascript-typescript`, `build-mode: none`, SHA-pinned actions) on PRs and pushes to `dev`/`main` and weekly. Its job id `codeql` is meant to join the ruleset's required checks beside `semgrep`, so it gates merges. A `dev` → `main` PR skips it, bound to this repository's own `dev` (a fork can name its branch `dev`, and a skipped job satisfies a required check); the same binding now guards the four `ci.yml` jobs that carried the bare `github.head_ref != 'dev'`.
+**Why:** Semgrep pattern-matches; CodeQL's dataflow analysis finds a different class of issue (tainted input reaching a sink across files), at no cost on a public repository.
+**Rejected:** CodeQL default setup (one click, but no pinned actions, no control over triggers or build mode, and not reviewable in the repo); autobuild (JavaScript/TypeScript needs no build for extraction, so it only adds a pnpm install to drift). **A ZAP baseline scan of the preview** was built and dropped before merging: a baseline scan is passive, and the only page reachable without an access code is `/demo-login` (D-21, D-24), so it could see headers and cookie flags on one page and nothing behind the gate. Its first findings would be the missing security headers T14 already owns, and its cookie checks see nothing because the anonymous session cookie is set client-side by JavaScript it does not run. Revisit when T14 has set the headers (a `curl` assertion on them is cheaper and deterministic) or if a scanner-held access code makes an authenticated scan worth its credential.
+**Consequence:** Adding `codeql` to the required checks is a ruleset change, which agents do not make (`AGENTS.md`); it is the human's step, and until then CodeQL reports without gating. Open to check on the first runs: that CodeQL can upload results on Dependabot PRs, which run with a read-only token.

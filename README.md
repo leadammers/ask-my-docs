@@ -8,7 +8,7 @@ A [NotebookLM](https://notebooklm.google/)–style app for adding documents to n
 
 **Live demo:** [ask-my-docs-demo.vercel.app](https://ask-my-docs-demo.vercel.app) · 🔐 Access code required ([request access](mailto:github.negative013@passinbox.com?subject=ask-my-docs%20demo%20access%20request&body=Hi%2C%0A%0AI%27d%20like%20to%20try%20the%20ask-my-docs%20demo%20%28https%3A//ask-my-docs-demo.vercel.app%29.%20Could%20you%20send%20me%20an%20access%20code%3F%0A%0AName%20/%20company%20%28optional%29%3A%0A%0AThanks%21))
 
-The demo sits behind a per-reviewer access code so that a public URL cannot burn through the free AI quota, and so one reviewer's access can be revoked without affecting the others. A code buys a database-side entitlement (valid 8 hours, up to 3 devices per code), not just a cookie, so the notebook data is not reachable around the app either ([D-24](docs/decisions.md), [D-21](docs/decisions.md)).
+The demo sits behind a per-person access code so that a public URL cannot burn through the free AI quota, and so one demo user's access can be revoked without affecting the others. A code buys a database-side entitlement (valid 8 hours, up to 3 devices per code), not just a cookie, so the notebook data is not reachable around the app either ([D-24](docs/decisions.md), [D-21](docs/decisions.md)).
 
 ---
 
@@ -67,6 +67,7 @@ GitHub Actions is the **only** thing that deploys; the Vercel Git integration is
 | Pull request targeting `dev` or `main` | lint, typecheck, unit, integration, pgTAP, build, Playwright e2e, secret and dependency scans, then a **preview** deployment for in-repository PRs whose head is not `dev`/`main` and whose author is not Dependabot |
 | Push to `dev` | the same checks, then a deployment to the dev alias |
 | Push to `main` | the same checks, then a **production** deployment |
+| Pull request, `main`/`dev` push, weekly | CodeQL (`javascript-typescript`, [D-25](docs/decisions.md)) |
 | PR merged | for an in-repository, non-Dependabot PR whose head is not `dev`/`main`, `preview-cleanup` deletes that branch's most recent (up to 100) pre-merge preview deployments; production and aliased deployments are never touched |
 
 ---

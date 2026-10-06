@@ -1,4 +1,4 @@
--- Per-reviewer demo access codes (D-24): claim_demo_session counts seats under a
+-- Per-person demo access codes (D-24): claim_demo_session counts seats under a
 -- row lock, and is_demo_entitled() also requires the code to be live, so
 -- revoking or expiring a code ends access immediately. Codes here are fake
 -- hashes — the function never sees a plaintext code.

@@ -7,7 +7,7 @@ Every route of the deployed app (except the login page itself and static assets)
 
 ## Your part
 - Choose the demo password and generate a cookie-signing secret (`openssl rand -hex 32`), set `DEMO_PASSWORD` and `DEMO_COOKIE_SECRET` in `.env.local` and, at release time, in Vercel.
-- Share the password with reviewers out of band (README already documents this once T15 lands).
+- Share the password with demo users out of band (README already documents this once T15 lands).
 
 ## Context
 - `docs/decisions.md` D-05 (anonymous sessions, no accounts) and D-09 (layered abuse protection) — this gate is a new layer *in front of* that flow, not a replacement: it keeps the app off the public internet for anyone without the password, while anonymous auth + RLS continue to isolate visitors from each other underneath.
