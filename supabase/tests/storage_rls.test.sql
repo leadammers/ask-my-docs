@@ -3,7 +3,7 @@
 -- `sources` row naming that path, up to 50 objects per folder; nobody touches
 -- another user's folder; the `audio` bucket takes no client writes.
 begin;
-select plan(15);
+select plan(17);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -140,14 +140,44 @@ select throws_ok(
 );
 
 -- ---------------------------------------------------------------------------
--- A, entitled: the per-folder object cap (50) counts orphans too
+-- The trigger (20261004120000): storage-api performs signed uploads as its
+-- superuser, past RLS, so the row binding and the cap must hold for the table
+-- owner too. Inserts below as the owner stand in for that upload.
 -- ---------------------------------------------------------------------------
--- A holds two objects (…0001, …0002). 47 orphans, objects whose rows were
--- deleted, bring it to 49; one tracked upload reaches 50, the next is refused.
 reset role;
-insert into storage.objects (bucket_id, name)
-select 'sources', '11111111-1111-1111-1111-111111111111/orphan-' || n || '.pdf'
-from generate_series(1, 47) n;
+insert into sources (id, notebook_id, user_id, kind, title, storage_path) values
+  ('a1000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111', 'pdf', 'Signed, then deleted',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000005.pdf');
+delete from sources where id = 'a1000000-0000-0000-0000-000000000005';
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name) values
+     ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000005.pdf') $$,
+  '42501',
+  'no source row names this object',
+  'a signed upload whose row was deleted after signing is refused'
+);
+
+-- A holds two objects (…0001, …0002). 47 real orphans (row inserted, object
+-- written, row deleted, one at a time under the source limit) bring it to 49;
+-- one tracked upload reaches 50, the next is refused.
+do $$
+declare
+  orphan_id uuid;
+begin
+  for n in 1..47 loop
+    orphan_id := gen_random_uuid();
+    insert into public.sources (id, notebook_id, user_id, kind, title, storage_path) values
+      (orphan_id, 'a0000000-0000-0000-0000-000000000001',
+       '11111111-1111-1111-1111-111111111111', 'pdf', 'Orphan',
+       '11111111-1111-1111-1111-111111111111/' || orphan_id || '.pdf');
+    insert into storage.objects (bucket_id, name) values
+      ('sources', '11111111-1111-1111-1111-111111111111/' || orphan_id || '.pdf');
+    delete from public.sources where id = orphan_id;
+  end loop;
+end
+$$;
 
 insert into sources (id, notebook_id, user_id, kind, title, storage_path) values
   ('a1000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001',
@@ -168,9 +198,19 @@ select throws_ok(
   $$ insert into storage.objects (bucket_id, name) values
      ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000004.pdf') $$,
   '42501',
-  null,
+  'storage object limit reached',
   'a tracked upload is refused once the folder holds 50 objects'
 );
+
+reset role;
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name) values
+     ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000004.pdf') $$,
+  '42501',
+  'storage object limit reached',
+  'the cap holds for the storage superuser''s upload too'
+);
+set local role authenticated;
 
 -- ---------------------------------------------------------------------------
 -- B, entitled too (so only ownership is under test): A's object is invisible
