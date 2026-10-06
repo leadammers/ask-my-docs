@@ -1,9 +1,9 @@
 -- Storage owner isolation and the upload gate (review 2026-10-02, D1/D8): an
 -- object in `sources` may be written only by a demo-entitled owner of a
--- `sources` row naming that path; nobody touches another user's folder; the
--- `audio` bucket takes no client writes.
+-- `sources` row naming that path, up to 50 objects per folder; nobody touches
+-- another user's folder; the `audio` bucket takes no client writes.
 begin;
-select plan(13);
+select plan(15);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'a@test.local'),
@@ -137,6 +137,39 @@ select throws_ok(
   '42501',
   'sources.id is immutable',
   'an owner cannot change sources.id together with storage_path'
+);
+
+-- ---------------------------------------------------------------------------
+-- A, entitled: the per-folder object cap (50) counts orphans too
+-- ---------------------------------------------------------------------------
+-- A holds two objects (…0001, …0002). 47 orphans, objects whose rows were
+-- deleted, bring it to 49; one tracked upload reaches 50, the next is refused.
+reset role;
+insert into storage.objects (bucket_id, name)
+select 'sources', '11111111-1111-1111-1111-111111111111/orphan-' || n || '.pdf'
+from generate_series(1, 47) n;
+
+insert into sources (id, notebook_id, user_id, kind, title, storage_path) values
+  ('a1000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111', 'pdf', 'Source 3',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000003.pdf'),
+  ('a1000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111', 'pdf', 'Source 4',
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000004.pdf');
+set local role authenticated;
+
+select lives_ok(
+  $$ insert into storage.objects (bucket_id, name) values
+     ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000003.pdf') $$,
+  'a tracked upload below the cap is allowed, orphans included in the count'
+);
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name) values
+     ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000004.pdf') $$,
+  '42501',
+  null,
+  'a tracked upload is refused once the folder holds 50 objects'
 );
 
 -- ---------------------------------------------------------------------------
