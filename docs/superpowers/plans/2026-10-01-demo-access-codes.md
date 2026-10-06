@@ -1,8 +1,8 @@
-# Per-reviewer demo access codes Implementation Plan
+# Per-person demo access codes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the shared demo password with per-reviewer, revocable access codes (max 3 concurrent sessions each), managed by a CLI script.
+**Goal:** Replace the shared demo password with per-person, revocable access codes (max 3 concurrent sessions each), managed by a CLI script.
 
 **Architecture:** A new `demo_codes` table (HMAC-hashed codes) and an atomic `claim_demo_session` SQL function replace the password check. `demo_entitlements` gains a `code_id`, and `is_demo_entitled()` also requires the code to be live, so revocation is immediate at the database level. The signed cookie stays a route gate only. Pure logic lives in `lib/demo-codes.ts`; the login action and the CLI stay thin.
 
@@ -25,11 +25,11 @@
 
 ## Review Focus
 
-1. A reviewer types the code in a different shape — lowercase, with spaces instead of hyphens, trailing whitespace, no hyphens at all — and must still get in (Task 1: normalisation + schema tests).
+1. A demo user types the code in a different shape — lowercase, with spaces instead of hyphens, trailing whitespace, no hyphens at all — and must still get in (Task 1: normalisation + schema tests).
 2. Empty or huge input in the code field must give the generic error, not a 500 (Task 1: `demoCodeInputSchema` tests; Task 4: e2e wrong-code test).
 3. A visitor who re-enters a _different_ valid code switches to it: the old code's seat is freed, the new one's is taken (Task 2: pgTAP steps 10–13).
 4. Revoking or expiring a code mid-session ends data access on the very next request, including direct PostgREST calls (Task 2: pgTAP steps 16–17).
-5. Two simultaneous claims on the last free seat must not both succeed. This relies on the `for update` row lock in `claim_demo_session` and cannot be asserted in pgTAP's single session; the reviewer should read that lock, and Task 2's sequential `seats_full` test pins the counting.
+5. Two simultaneous claims on the last free seat must not both succeed. This relies on the `for update` row lock in `claim_demo_session` and cannot be asserted in pgTAP's single session; the demo user should read that lock, and Task 2's sequential `seats_full` test pins the counting.
 
 ---
 
@@ -224,7 +224,7 @@ Expected: FAIL — cannot resolve `@/lib/demo-codes`.
 import { z } from 'zod';
 import { DEMO_SESSION_DURATION_MS, hmacHex } from '@/lib/demo-gate';
 
-// Per-reviewer demo access codes (D-24). Pure: no env, no I/O — the pepper is a
+// Per-person demo access codes (D-24). Pure: no env, no I/O — the pepper is a
 // parameter, randomness is injectable.
 
 const CODE_PREFIX = 'AMD';
@@ -378,7 +378,7 @@ Run: `pnpm db:start` (Docker must be running). Expected: stack up.
 - [ ] **Step 2: Write the failing pgTAP file** — create `supabase/tests/demo_codes.test.sql`:
 
 ```sql
--- Per-reviewer demo access codes (D-24): claim_demo_session counts seats under a
+-- Per-person demo access codes (D-24): claim_demo_session counts seats under a
 -- row lock, and is_demo_entitled() also requires the code to be live, so
 -- revoking or expiring a code ends access immediately. Codes here are fake
 -- hashes — the function never sees a plaintext code.
@@ -491,9 +491,9 @@ Expected: FAIL — relation `demo_codes` does not exist (other files still pass)
 - [ ] **Step 4: Write the migration** — create `supabase/migrations/20261001120000_demo_access_codes.sql`:
 
 ```sql
--- D-24: per-reviewer demo access codes replace the shared demo password.
+-- D-24: per-person demo access codes replace the shared demo password.
 --
--- demo_codes holds one row per reviewer (HMAC hash only — the plaintext is
+-- demo_codes holds one row per demo user (HMAC hash only — the plaintext is
 -- printed once by scripts/demo-codes.ts). Every entitlement now records the
 -- code that granted it, and is_demo_entitled() requires that code to be
 -- unrevoked and unexpired, so revoking a code closes the database half of the
@@ -840,7 +840,7 @@ Expected: PASS. `grep -rn "DEMO_PASSWORD\|verifyDemoPassword" app lib components
 
 ```bash
 git add lib app components .env.example .env.test.example .github playwright.config.ts
-git commit -m "feat: sign in to the demo with a per-reviewer access code"
+git commit -m "feat: sign in to the demo with a per-person access code"
 ```
 
 ---
@@ -1082,7 +1082,7 @@ The CLI is thin I/O over tested pure logic, so it gets a manual verification ste
 - [ ] **Step 1: Write the script**
 
 ```ts
-// Issue, list and revoke per-reviewer demo access codes (D-24).
+// Issue, list and revoke per-person demo access codes (D-24).
 //   pnpm script scripts/demo-codes.ts create "<label>" [--days N] [--sessions N]
 //   pnpm script scripts/demo-codes.ts list
 //   pnpm script scripts/demo-codes.ts revoke <id>
@@ -1257,23 +1257,23 @@ git commit -m "feat: add the demo access-code admin CLI"
 - [ ] **Step 1: Append D-24** to `docs/decisions.md` (after D-23), following the file's heading pattern:
 
 ```markdown
-## D-24 — Per-reviewer demo access codes replace the shared password
+## D-24 — Per-person demo access codes replace the shared password
 
 **Date:** 2026-10-01 · **Status:** proposed (supersedes the shared password of D-16; builds on D-21)
 
-**Decision:** The demo password is replaced by one access code per reviewer (`AMD-` + 128 random bits, shown once, stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`). `claim_demo_session(code_hash, user_id, ttl)` (service-role only) locks the code row, refuses unknown/revoked/expired codes and a fourth concurrent session (`max_sessions`, default 3), and writes the `demo_entitlements` row with its `code_id`. `is_demo_entitled()` also requires the code to be unrevoked and unexpired, so revoking a code ends access at the database immediately. The cookie is unchanged (route gate only). Codes are issued, listed and revoked with `scripts/demo-codes.ts` by the human. `DEMO_PASSWORD` is removed with no fallback.
+**Decision:** The demo password is replaced by one access code per demo user (`AMD-` + 128 random bits, shown once, stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`). `claim_demo_session(code_hash, user_id, ttl)` (service-role only) locks the code row, refuses unknown/revoked/expired codes and a fourth concurrent session (`max_sessions`, default 3), and writes the `demo_entitlements` row with its `code_id`. `is_demo_entitled()` also requires the code to be unrevoked and unexpired, so revoking a code ends access at the database immediately. The cookie is unchanged (route gate only). Codes are issued, listed and revoked with `scripts/demo-codes.ts` by the human. `DEMO_PASSWORD` is removed with no fallback.
 **Why:** a shared password is effectively public once sent, cannot be withdrawn from one person, and rotating it locks everyone out. Per-person codes make a leak attributable and revocable, and the seat cap bounds sharing.
-**Rejected:** keeping the password beside codes (a permanent bypass); an admin web UI (a new privileged surface for a handful of reviewers); single-use OTPs (reviewers return over several days); putting `code_id` in the cookie (the cookie is not an authorization layer, D-21).
+**Rejected:** keeping the password beside codes (a permanent bypass); an admin web UI (a new privileged surface for a handful of demo users); single-use OTPs (demo users return over several days); putting `code_id` in the cookie (the cookie is not an authorization layer, D-21).
 **Consequence:** one migration that clears existing entitlements, one new secret (`DEMO_CODE_PEPPER`; rotating it invalidates every code), a seat frees only when its 8 h entitlement expires. The in-process login limiter stays a stopgap, but guessing 128-bit codes is infeasible.
 ```
 
-- [ ] **Step 2: `conventions/security.md`** — §2: replace the demo-password bullet with: "Each reviewer gets a revocable **access code** (`/demo-login`, D-24). A valid code buys an **entitlement**, not just a cookie: a `demo_entitlements` row naming the code, which the demo policies and `notebooks_insert_owner` require while the code is unrevoked and unexpired. Entitlements expire after 8 h; a code allows `max_sessions` concurrent ones." §7: in "The login limiter is a stopgap" paragraph replace the password-guessing reasoning with: codes carry 128 bits, so guessing them is infeasible regardless of the limiter; the limiter remains a per-instance stopgap against noise, and "revisit only if the gate ever protects something other than the public demo" stays.
+- [ ] **Step 2: `conventions/security.md`** — §2: replace the demo-password bullet with: "Each demo user gets a revocable **access code** (`/demo-login`, D-24). A valid code buys an **entitlement**, not just a cookie: a `demo_entitlements` row naming the code, which the demo policies and `notebooks_insert_owner` require while the code is unrevoked and unexpired. Entitlements expire after 8 h; a code allows `max_sessions` concurrent ones." §7: in "The login limiter is a stopgap" paragraph replace the password-guessing reasoning with: codes carry 128 bits, so guessing them is infeasible regardless of the limiter; the limiter remains a per-instance stopgap against noise, and "revisit only if the gate ever protects something other than the public demo" stays.
 
-- [ ] **Step 3: `docs/models.md`** — add a `demo_codes` row (`id PK`, `label`, `code_hash UNIQUE`, `created_at`, `expires_at`, `revoked_at`, `max_sessions` — "One row per reviewer. Server only; the hash is HMAC-SHA256 of the normalised code with `DEMO_CODE_PEPPER`.") and change the `demo_entitlements` row to include `code_id FK → demo_codes` and "one row per session that entered a valid access code".
+- [ ] **Step 3: `docs/models.md`** — add a `demo_codes` row (`id PK`, `label`, `code_hash UNIQUE`, `created_at`, `expires_at`, `revoked_at`, `max_sessions` — "One row per demo user. Server only; the hash is HMAC-SHA256 of the normalised code with `DEMO_CODE_PEPPER`.") and change the `demo_entitlements` row to include `code_id FK → demo_codes` and "one row per session that entered a valid access code".
 
 - [ ] **Step 4: README** — run `grep -n -i "password" README.md` and replace every demo-password mention with access-code wording ("request an access code"). In the mailto link, replace the body with the URL-encoded text `Hi,\n\nI'd like to try the ask-my-docs demo (https://ask-my-docs-demo.vercel.app). Could you send me an access code?\n\nName / company (optional):\n\nThanks!` (keep `subject=ask-my-docs%20demo%20access%20request`). In "Known limitations" add one line: a code works on at most 3 devices at once, and a seat frees when its 8 h session expires.
 
-- [ ] **Step 5: Release checklist** — in `tasks/README.md` "Release to production (human)", add before the `supabase db push` step: "Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env; remove `DEMO_PASSWORD`." and after the production smoke test: "Issue a code per reviewer: `scripts/demo-codes.ts create "<label>"` with production env values, send each code out of band." Run `grep -n -i "demo password\|DEMO_PASSWORD" docs/scope.md tasks/*.md` and update any live (non-historical) mention; leave `tasks/T02b-demo-password-gate.md` as history.
+- [ ] **Step 5: Release checklist** — in `tasks/README.md` "Release to production (human)", add before the `supabase db push` step: "Add `DEMO_CODE_PEPPER` (`openssl rand -hex 32`) to the Vercel env; remove `DEMO_PASSWORD`." and after the production smoke test: "Issue a code per demo user: `scripts/demo-codes.ts create "<label>"` with production env values, send each code out of band." Run `grep -n -i "demo password\|DEMO_PASSWORD" docs/scope.md tasks/*.md` and update any live (non-historical) mention; leave `tasks/T02b-demo-password-gate.md` as history.
 
 - [ ] **Step 6: `docs/ai-workflow.md`** — append one row to the log table: "Demo access codes (branch `feat/demo-access-codes`; no task file)" describing the spec, plan and implementation (migration + `claim_demo_session`, code-based login, e2e minting through the service role, admin CLI); leave the human-review column empty.
 
@@ -1284,7 +1284,7 @@ Expected: PASS (run `pnpm format` first if Prettier complains).
 
 ```bash
 git add docs conventions README.md tasks
-git commit -m "docs: document per-reviewer demo access codes (D-24)"
+git commit -m "docs: document per-person demo access codes (D-24)"
 ```
 
 ---

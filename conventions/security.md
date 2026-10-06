@@ -21,10 +21,10 @@ Anything crossing from left to right is validated. Model output is treated as un
 
 ## 2. Authentication and abuse protection
 
-- Every visitor gets an **anonymous Supabase session**. Sign-in is protected by **Cloudflare Turnstile** (Supabase Auth's built-in CAPTCHA support) in *managed/invisible* mode, so reviewers normally see no challenge.
+- Every visitor gets an **anonymous Supabase session**. Sign-in is protected by **Cloudflare Turnstile** (Supabase Auth's built-in CAPTCHA support) in *managed/invisible* mode, so demo users normally see no challenge.
 - The CAPTCHA token is passed to `signInAnonymously({ options: { captchaToken } })`. The secret key lives only in the Supabase dashboard — never in the repo or the client.
 - Anonymous users are the `authenticated` role in Postgres. RLS policies apply to them unchanged — do not write special cases based on `is_anonymous`.
-- Each reviewer gets a revocable **access code** (`/demo-login`, D-24). A valid code buys an **entitlement**, not just a cookie: a `demo_entitlements` row for the session naming the code, which the demo policies and `notebooks_insert_owner` require for as long as the code is unrevoked and unexpired. Cookie and entitlement expire after 8 h; a code allows `max_sessions` (default 3) concurrent entitlements. Codes carry 128 random bits and are stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`. A phone-number-like throttle on the login route is *not* claimed — see §7.
+- Each demo user gets a revocable **access code** (`/demo-login`, D-24). A valid code buys an **entitlement**, not just a cookie: a `demo_entitlements` row for the session naming the code, which the demo policies and `notebooks_insert_owner` require for as long as the code is unrevoked and unexpired. Cookie and entitlement expire after 8 h; a code allows `max_sessions` (default 3) concurrent entitlements. Codes carry 128 random bits and are stored only as an HMAC hash keyed by `DEMO_CODE_PEPPER`. A phone-number-like throttle on the login route is *not* claimed — see §7.
 - Middleware only refreshes sessions. **Authorization never happens in middleware alone.**
 
 ## 3. Authorization — defense in depth
@@ -77,7 +77,7 @@ Per-user limits alone are not enough: clearing cookies creates a new anonymous u
 
 1. **Turnstile** on anonymous sign-in (makes mass account creation expensive)
 2. **Per-user limits** via `lib/rate-limit.ts`: chat per minute, ingest per hour, audio per day
-3. **Global daily AI cap** (`AI_GLOBAL_DAILY_CAP`): a circuit breaker counted across all users in `usage_events`. When reached, AI features return a friendly "daily demo limit reached" message until midnight UTC. This protects the free Gemini quota during the review window.
+3. **Global daily AI cap** (`AI_GLOBAL_DAILY_CAP`): a circuit breaker counted across all users in `usage_events`. When reached, AI features return a friendly "daily demo limit reached" message until midnight UTC. This protects the free Gemini quota while the demo is live.
 
 Every AI-calling route or action checks all applicable limits **before** calling the model.
 

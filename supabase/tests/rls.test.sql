@@ -131,7 +131,7 @@ select throws_ok(
 -- Inserting a chunk is refused by the missing grant, not by RLS: the grant is
 -- checked first, so the message is `permission denied` for every notebook,
 -- the visitor's own included. The demo case is the one that mattered (a chunk
--- in the demo notebook is served to every reviewer), and it is refused too.
+-- in the demo notebook is served to every demo user), and it is refused too.
 select throws_ok(
   $$ insert into chunks (source_id, notebook_id, user_id, ordinal, content)
      values ('b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 0, 'hack') $$,

@@ -6,7 +6,7 @@ Four principles, in the priority order from `README.md`. When in doubt, ask: *wh
 
 ## 1. KISS — Keep It Simple
 
-The deadline is one week. Every moving part must earn its place.
+The scope is small and the time budget tight. Every moving part must earn its place.
 
 **In this project that means:**
 
@@ -77,4 +77,4 @@ lib/**/<logic>.ts                 pure: input in, output out, unit tested
 
 Pure and unit-tested in this project: chunking, citation parsing, RRF fusion, WAV encoding, rate-limit window math, URL/IP validation, prompt assembly, source fingerprinting.
 
-This is what makes a one-week project testable: the risky logic is covered by fast tests, and the I/O shell stays too thin to hide bugs.
+This is what makes a small project testable: the risky logic is covered by fast tests, and the I/O shell stays too thin to hide bugs.

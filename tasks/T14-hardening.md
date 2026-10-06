@@ -3,7 +3,7 @@
 **Mode:** agent+check · **Priority:** P0 · **Depends on:** T08 · **Estimate:** 1.25h · **Your time:** 20 min
 
 ## Goal
-The deployed app survives a skeptical reviewer: no broken states, clear limits, no obvious security holes.
+The deployed app survives a skeptical visitor: no broken states, clear limits, no obvious security holes.
 
 ## Your part
 Lighthouse in Chrome DevTools on the production notebook page; a final skeptical click-through in an incognito window.

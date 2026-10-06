@@ -1,18 +1,18 @@
 # Scope
 
 **Project:** ask-my-docs — a NotebookLM clone
-**Context:** take-home task for a job application. Deliverables: GitHub repo, live deployment, Loom video (max. 10 min) explaining the approach and testing the clone live.
-**Time budget:** ~1 week of evenings, ~18-22 focused hours, agent-assisted.
+**Deliverables:** GitHub repo, live deployment, demo video (max. 10 min) explaining the approach and testing the clone live.
+**Time budget:** ~18-22 focused hours, agent-assisted.
 **Last updated:** 2026-10-01
 
 ---
 
-## 1. What "done" means for this submission
+## 1. What "done" means
 
-The reviewers will judge three things, in this order:
+Three things matter, in this order:
 
-1. **Does it work live?** They will click the deployment link. First load must be fast, no account or sign-up, no broken states. The only gate is a per-reviewer access code (D-24), handed out on request.
-2. **How did she approach it?** The task says AI tools are explicitly wanted and they want to *see how she works*. The repo itself — scope, decisions, task files, agent instructions, commit history — is evidence of the process. `docs/ai-workflow.md` makes that explicit.
+1. **Does it work live?** Visitors click the deployment link. First load must be fast, no account or sign-up, no broken states. The only gate is a per-person access code (D-24), handed out on request.
+2. **Is the process visible?** The project is built with AI coding tools, and how that work is steered should be traceable. The repo itself — scope, decisions, task files, agent instructions, commit history — is evidence of the process. `docs/ai-workflow.md` makes that explicit.
 3. **Is the engineering sound?** Grounded answers with real citations, sensible architecture, security awareness, some measurement of quality.
 
 Everything below is prioritised against those three.
@@ -29,7 +29,7 @@ A user can:
 6. Get an honest "not in your sources" answer when the sources don't cover the question.
 7. Return later in the same browser and find their notebooks and chat history.
 
-Plus: a **pre-seeded demo notebook** so a reviewer can try it in 10 seconds without uploading anything.
+Plus: a **pre-seeded demo notebook** so a demo user can try it in 10 seconds without uploading anything.
 
 ## 3. Extras (ordered by priority — build top-down, stop when time runs out)
 
@@ -43,7 +43,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | Stretch | **Audio overview** — two-host podcast-style summary via multi-speaker TTS | The most memorable demo moment, but the highest-risk build (preview TTS model, long generation). Only attempted once P0, evaluation and hardening are solid, strictly timeboxed at 3h, with a transcript-only fallback | 3h |
 | Stretch | YouTube transcripts as a source | Only if everything above is done | — |
 
-**Cut line:** evaluation (T13) and hardening (T14) are part of the MVP and are never cut. If behind schedule by day 4, drop the audio overview first, then saved notes (P3), then the URL source type from P2. A complete, evaluated and hardened P0 is a strong submission on its own; a P0 with several half-built extras around it is not.
+**Cut line:** evaluation (T13) and hardening (T14) are part of the MVP and are never cut. If behind schedule by day 4, drop the audio overview first, then saved notes (P3), then the URL source type from P2. A complete, evaluated and hardened P0 is a strong result on its own; a P0 with several half-built extras around it is not.
 
 ## 4. Quality & engineering (non-feature scope)
 
@@ -59,7 +59,7 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 
 | Not doing | Reason |
 |---|---|
-| Real accounts (email/OAuth), sharing, collaboration | Anonymous sessions are enough for a demo; accounts add a login wall reviewers would hit |
+| Real accounts (email/OAuth), sharing, collaboration | Anonymous sessions are enough for a demo; accounts add a login wall demo users would hit |
 | Multi-language UI / i18n | UI is English; answers follow the language of the question (German works). A de/en UI is [T16](../tasks/T16-i18n.md), scheduled before T09 and cut only after T11 and T12 |
 | Mobile-optimised layout | Desktop-first; must not break on mobile, but not designed for it |
 | OCR for scanned PDFs | Text-layer PDFs only; scanned PDFs fail with a clear message |
@@ -73,16 +73,16 @@ The core RAG pipeline (P0: hybrid retrieval, grounded citations) is the main eng
 | 1 | Docker + accounts, scaffold, local schema, **live URL exists** | T00-T03 |
 | 2 | Provider layer + PDF ingestion | T04-T05 |
 | 3 | Retrieval + grounded chat with citations | T06-T07 |
-| 4 | Notebook UI polish → **MVP submittable** | T08, T08b (data retention + banner), T08c (demo seeding) |
+| 4 | Notebook UI polish → **MVP complete** | T08, T08b (data retention + banner), T08c (demo seeding) |
 | 5 | Guide + more source types | T09-T10 |
 | 6 | Evaluation + hardening (guaranteed) | T13-T14 |
-| 7 | Notes, audio overview if time allows, README, Loom recording | T12, T11, T15 |
+| 7 | Notes, audio overview if time allows, README, demo video | T12, T11, T15 |
 
-**Rule:** deploy from day 1 and keep `main` deployable. A late surprise in deployment is the most likely way to miss the deadline.
+**Rule:** deploy from day 1 and keep `main` deployable. A late surprise in deployment is the most likely way to miss the schedule.
 
-## 7. Loom video outline (≤ 10 min)
+## 7. Demo video outline (≤ 10 min)
 
-1. **0:00-1:00** — What I built and the constraints I set (1 week, €0, NotebookLM core first).
+1. **0:00-1:00** — What I built and the constraints I set (small time budget, €0, NotebookLM core first).
 2. **1:00-3:00** — How I worked: scope → decisions → task files → agents implement task by task → I review. Show `tasks/`, `AGENTS.md`, a commit, one place where I corrected the agent.
 3. **3:00-7:30** — Live test: demo notebook → upload a new PDF → ask questions → click citations → out-of-scope question gets refused → guide → audio overview → save a note.
 4. **7:30-9:00** — Architecture in one diagram; evaluation results; known limitations.

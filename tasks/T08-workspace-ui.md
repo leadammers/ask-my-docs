@@ -5,7 +5,7 @@
 Demo seeding is **not** in this task — it moved to [T08c](T08c-demo-notebook.md), which runs first so this task can be built and reviewed against a real seeded notebook.
 
 ## Goal
-The notebook page becomes a workspace: sources and chat side by side, checking sources changes what the next answer is grounded in, and clicking a citation opens the cited passage with the quoted line highlighted. **After T08 + T08b + T08c the MVP is submittable.**
+The notebook page becomes a workspace: sources and chat side by side, checking sources changes what the next answer is grounded in, and clicking a citation opens the cited passage with the quoted line highlighted. **After T08 + T08b + T08c the MVP is complete.**
 
 The target is *not* a NotebookLM clone. NotebookLM gives Studio a permanent third column; here Studio is a later add-on (T09/T11/T12), and a third column would hold three "coming soon" cards while squeezing the chat — the actual product — to roughly 520px at 1280px. So: **two columns and one secondary surface**, a left-anchored drawer that covers the sources list for the duration.
 

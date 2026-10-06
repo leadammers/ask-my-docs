@@ -280,7 +280,7 @@ A dev → main release PR does not build a preview: `dev` already has its own de
 | Ingest failure | Source marked `failed` with a readable reason; the rest of the notebook keeps working |
 | Rate limit hit | 429 with a clear message; counted via `usage_events` |
 | Global daily AI cap reached | AI features show "daily demo limit reached" until midnight UTC; the rest of the app keeps working |
-| Supabase free project paused (7 days idle) | Keep active during the review window; noted in README |
+| Supabase free project paused (7 days idle) | Keep active while the demo is live; noted in README |
 
 ## 7. Observability
 

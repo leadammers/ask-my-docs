@@ -4,7 +4,7 @@ Operating manual for coding agents working in this repository. Read this fully b
 
 ## Project in one paragraph
 
-ask-my-docs is a NotebookLM clone: users create notebooks, add sources (PDF, text, URL), and chat with them. Answers are grounded only in the sources and carry clickable citations. Extras: notebook guide, audio overview, saved notes. It is a one-week take-home task for a job application, deployed live on Vercel + Supabase with the Gemini free tier.
+ask-my-docs is a NotebookLM clone: users create notebooks, add sources (PDF, text, URL), and chat with them. Answers are grounded only in the sources and carry clickable citations. Extras: notebook guide, audio overview, saved notes. It is deployed live on Vercel + Supabase with the Gemini free tier.
 
 Before writing code, read:
 
