@@ -131,10 +131,18 @@ test('chat history and citations survive a page reload', async ({ browser }) => 
   await addReadySource(page, 'sample.pdf', 'sample');
 
   await ask(page, SAMPLE_QUESTION);
-  await expect(page.getByText('According to your sources, this is a mock answer')).toBeVisible();
+  // The answer text is visible a few tokens before the stream ends, and the
+  // assistant row is written in onFinish after that, so a reload straight away
+  // can load the history without it. The citation chip only renders once the
+  // last token is in, and the reload retries until the row has landed.
+  await expect(page.getByLabel(/^Citation 1: sample/)).toBeVisible();
 
-  await page.reload();
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByText('According to your sources, this is a mock answer')).toBeVisible({
+      timeout: 2_000,
+    });
+  }).toPass();
   await expect(page.getByText('Alpha Report')).toBeVisible();
-  await expect(page.getByText('According to your sources, this is a mock answer')).toBeVisible();
   await expect(page.getByLabel(/^Citation 1: sample/)).toBeVisible();
 });

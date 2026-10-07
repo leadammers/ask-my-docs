@@ -14,6 +14,9 @@ test('the banner shows the retention period on the first visit and stays dismiss
   await expect(banner).toBeVisible();
   await expect(banner).toContainText('deleted after 30 days without a visit');
   await expect(page.getByRole('contentinfo')).toContainText('deleted after 30 days');
+  // The banner and footer come from the layout and can render before the page's
+  // own content has streamed in; scanning then reports a missing h1.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your notebooks');
 
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
