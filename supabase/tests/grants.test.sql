@@ -3,7 +3,7 @@
 -- hosted project can't silently drift apart again (see
 -- 20260927130918_explicit_grants.sql for why this matters).
 begin;
-select plan(36);
+select plan(40);
 
 select table_privs_are('public', 'app_settings', 'anon', array[]::text[], 'anon has no privileges on app_settings');
 select table_privs_are('public', 'app_settings', 'authenticated', array['SELECT'], 'authenticated can only select app_settings');
@@ -55,6 +55,12 @@ select table_privs_are('public', 'demo_codes', 'service_role', array['SELECT', '
 select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'anon', array[]::text[], 'anon cannot execute claim_demo_session');
 select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'authenticated', array[]::text[], 'authenticated cannot execute claim_demo_session');
 select function_privs_are('public', 'claim_demo_session', array['text', 'uuid', 'integer'], 'service_role', array['EXECUTE'], 'service_role executes claim_demo_session');
+
+-- Trigger-only functions: nobody calls them directly.
+select function_privs_are('public', 'prevent_source_id_update', array[]::text[], 'anon', array[]::text[], 'anon cannot execute prevent_source_id_update');
+select function_privs_are('public', 'prevent_source_id_update', array[]::text[], 'authenticated', array[]::text[], 'authenticated cannot execute prevent_source_id_update');
+select function_privs_are('public', 'enforce_source_object_gate', array[]::text[], 'anon', array[]::text[], 'anon cannot execute enforce_source_object_gate');
+select function_privs_are('public', 'enforce_source_object_gate', array[]::text[], 'authenticated', array[]::text[], 'authenticated cannot execute enforce_source_object_gate');
 
 select * from finish();
 rollback;
