@@ -74,9 +74,11 @@ select lives_ok(
   'entitled B can upload to their own source path'
 );
 
+-- A's tracked path, so the object trigger (which fires before the policy check)
+-- passes and the refusal comes from the owner-folder rule itself.
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name, owner_id)
-     values ('sources', '11111111-1111-1111-1111-111111111111/zzzz0000-0000-0000-0000-000000000001.pdf',
+     values ('sources', '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001.pdf',
              '22222222-2222-2222-2222-222222222222') $$,
   '42501',
   'new row violates row-level security policy for table "objects"',
