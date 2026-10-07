@@ -105,6 +105,7 @@ Why not SSE for status: every Vercel invocation is isolated, so an SSE endpoint 
 - **No real network or model calls in tests or CI.** Use the AI SDK's mock models (`ai/test`) where a model is involved.
 - LLM output is non-deterministic: assert on structure and invariants (valid citations, schema-valid), never on exact wording.
 - Test files sit next to the code: `chunk.ts` → `chunk.test.ts`. Fixtures under `test/fixtures/`, each under 200 KB.
+- **Every fixed bug gets a regression test where feasible**, at the lowest level that reproduces it: Vitest for logic, pgTAP (`supabase/tests/`) for RLS, grants and triggers, Playwright for user-visible behaviour. Confirm it fails without the fix, then passes with it. If no test is feasible, say why in the commit or PR (e.g. a race that needs real provider timing). A fixed flaky test is its own regression test: the fix makes it deterministic, and the commit names the race it closed.
 
 ## E2E tests (Playwright)
 
